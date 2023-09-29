@@ -14,3 +14,18 @@ dependencyResolutionManagement {
 
 rootProject.name = 'contentgrid-surveyor'
 
+include 'surveyor-dependencies'
+
+include 'surveyor-api'
+include 'surveyor-spi'
+
+include 'surveyor-domain'
+
+include 'surveyor-drivers-web'
+
+include 'surveyor-infrastructure-storage-inmemory'
+include 'surveyor-infrastructure-storage-data-jdbc'
+include 'surveyor-infrastructure-source-events-loki'
+include 'surveyor-infrastructure-source-metrics-prometheus'
+
+include 'surveyor-usecases'

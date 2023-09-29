@@ -1,0 +1,13 @@
+plugins {
+    id 'java-library'
+    id 'io.freefair.lombok'
+}
+dependencies {
+    implementation platform(project(':surveyor-dependencies'))
+
+    api project(':surveyor-spi')
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params'
+    testImplementation 'org.assertj:assertj-core'
+}
