@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor;
+package com.contentgrid.surveyor.application.boot;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

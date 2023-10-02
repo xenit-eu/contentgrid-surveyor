@@ -1,5 +1,6 @@
 package com.contentgrid.surveyor;
 
+import com.contentgrid.surveyor.application.boot.ContentgridSurveyorApplication;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;

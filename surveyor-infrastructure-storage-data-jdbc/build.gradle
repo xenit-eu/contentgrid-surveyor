@@ -2,12 +2,14 @@ plugins {
     id 'java-library'
     id 'io.freefair.lombok'
 }
+
 dependencies {
     implementation platform(project(':surveyor-dependencies'))
 
     api project(':surveyor-spi')
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+    implementation 'org.flywaydb:flyway-core'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-engine'
     testImplementation 'org.junit.jupiter:junit-jupiter-params'

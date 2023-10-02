@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:tc:timescaledb:latest-pg14:///surveyor
+
+server:
+  port: 9087
+  error:
+    include-message: always
+
+management:
+  server:
+    port: 9187
+  endpoints:
+    web:
+      exposure:
+        include: "*"
