@@ -1,15 +1,15 @@
 package com.contentgrid.surveyor.spi.source;
 
+import com.contentgrid.surveyor.spi.ResourceDefinition;
+import com.contentgrid.surveyor.spi.TimeInterval;
 import java.math.BigDecimal;
-import lombok.Value;
 
-@Value
-public class CollectedMetric {
+public record CollectedMetric(
+        ResourceDefinition resourceDefinition,
+        String resourceId,
 
-    String resourceType;
-    String resourceId;
-    String metricName;
+        TimeInterval timeInterval,
+        BigDecimal value
+) {
 
-    TimeInterval timeInterval;
-    BigDecimal value;
 }

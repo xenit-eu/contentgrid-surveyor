@@ -1,12 +1,14 @@
 package com.contentgrid.surveyor.spi.storage;
 
-import java.math.BigInteger;
+import com.contentgrid.surveyor.spi.TimeInterval;
+import java.math.BigDecimal;
 import lombok.Value;
 
 @Value
 public
 class EventCountMetric {
+
     TimeInterval measureInterval;
     Resource resource;
-    BigInteger count;
+    BigDecimal value;
 }

@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse;
+import com.contentgrid.surveyor.spi.source.EventMetricsSource.CollectionFailedException;
+import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -88,34 +90,34 @@ class PrometheusEventMetricsSourceTest {
     }
 
     @Test
-    void queryValueAt() {
-        var config = PrometheusMetricCollectionConfig.builder()
-                .api(PrometheusApiConfig.builder()
-                        .url(PROMETHEUS.getApiUrl())
-                        .headers(Map.of())
-                        .build())
+    void queryValueAt() throws CollectionFailedException {
+        var api = PrometheusApiConfig.builder()
+                .system("prom")
+                .url(PROMETHEUS.getApiUrl())
+                .headers(Map.of())
+                .build();
+        var config = MetricCollectionConfig.builder()
+                .resourceDefinition(new ResourceDefinition("prom", "test", "test"))
                 .query("fixed_metric_1")
-                .snapshotInterval(Duration.ofHours(1))
-                .resourceType("test")
-                .metric("test")
+                .interval(Duration.ofHours(1))
                 .resourceIdLabel("resource")
                 .build();
-        var source = new PrometheusEventMetricsSource(WebClient.builder(), config);
+        var source = new PrometheusEventMetricsSource(WebClient.builder(), api);
 
-        assertThat(source.collectMetrics(FAKE_METRICS_START)).satisfiesExactlyInAnyOrder(
+        assertThat(source.collectMetrics(config, FAKE_METRICS_START)).satisfiesExactlyInAnyOrder(
                 resourceAbc -> {
-                    assertThat(resourceAbc.getResourceId()).isEqualTo("abc");
-                    assertThat(resourceAbc.getTimeInterval().getStartTime()).isEqualTo(FAKE_METRICS_START);
-                    assertThat(resourceAbc.getTimeInterval().getEndTime()).isEqualTo(
+                    assertThat(resourceAbc.resourceId()).isEqualTo("abc");
+                    assertThat(resourceAbc.timeInterval().getStartTime()).isEqualTo(FAKE_METRICS_START);
+                    assertThat(resourceAbc.timeInterval().getEndTime()).isEqualTo(
                             FAKE_METRICS_START.plus(1, ChronoUnit.HOURS));
-                    assertThat(resourceAbc.getValue()).isEqualTo(BigDecimal.valueOf(8));
+                    assertThat(resourceAbc.value()).isEqualTo(BigDecimal.valueOf(8));
                 },
                 resourceXyz -> {
-                    assertThat(resourceXyz.getResourceId()).isEqualTo("xyz");
-                    assertThat(resourceXyz.getTimeInterval().getStartTime()).isEqualTo(FAKE_METRICS_START);
-                    assertThat(resourceXyz.getTimeInterval().getEndTime()).isEqualTo(
+                    assertThat(resourceXyz.resourceId()).isEqualTo("xyz");
+                    assertThat(resourceXyz.timeInterval().getStartTime()).isEqualTo(FAKE_METRICS_START);
+                    assertThat(resourceXyz.timeInterval().getEndTime()).isEqualTo(
                             FAKE_METRICS_START.plus(1, ChronoUnit.HOURS));
-                    assertThat(resourceXyz.getValue()).isEqualTo(BigDecimal.valueOf(15.3));
+                    assertThat(resourceXyz.value()).isEqualTo(BigDecimal.valueOf(15.3));
                 }
         );
     }

@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.spi.source;
+package com.contentgrid.surveyor.spi;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -17,6 +17,10 @@ public class TimeInterval {
 
     public static TimeInterval after(Instant startTime, Duration duration) {
         return between(startTime, startTime.plus(duration));
+    }
+
+    public static TimeInterval before(Instant endTime, Duration duration) {
+        return between(endTime.minus(duration), endTime);
     }
 
     public Overlap contains(TimeInterval container) {
@@ -48,13 +52,24 @@ public class TimeInterval {
         return new TimeInterval(startTime, recalculatedEndTime);
     }
 
-    public Stream<com.contentgrid.surveyor.spi.storage.TimeInterval> chunkedBy(Duration chunkDuration) {
+    public Duration getDuration() {
+        return Duration.between(startTime, endTime);
+    }
+
+    public TimeInterval nextInterval() {
+        return TimeInterval.after(endTime, getDuration());
+    }
+
+    public Stream<TimeInterval> chunkedBy(Duration chunkDuration) {
         return Stream.iterate(
                 startTime,
                 time -> time.isBefore(endTime),
                 time -> time.plus(chunkDuration)
-        ).map(chunkStartTime -> new com.contentgrid.surveyor.spi.storage.TimeInterval(chunkStartTime,
-                chunkStartTime.plus(chunkDuration)));
+        ).map(chunkStartTime -> TimeInterval.after(chunkStartTime, chunkDuration));
+    }
+
+    public String toString() {
+        return "[" + startTime + ", " + endTime + ")";
     }
 
     @RequiredArgsConstructor

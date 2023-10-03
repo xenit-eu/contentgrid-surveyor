@@ -7,6 +7,7 @@ import lombok.Value;
 @Value
 public
 class GaugeMetric {
+
     Instant measureTime;
     Resource resource;
     BigInteger value;

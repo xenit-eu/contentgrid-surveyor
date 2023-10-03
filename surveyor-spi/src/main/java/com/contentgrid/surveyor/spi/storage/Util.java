@@ -6,6 +6,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 class Util {
+
     public <T> T onlyValue(List<T> list, Supplier<T> defaultValue) {
         return switch (list.size()) {
             case 0 -> defaultValue.get();

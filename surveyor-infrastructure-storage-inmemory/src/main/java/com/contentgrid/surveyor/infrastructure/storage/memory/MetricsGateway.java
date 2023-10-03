@@ -1,14 +1,16 @@
 package com.contentgrid.surveyor.infrastructure.storage.memory;
 
+import com.contentgrid.surveyor.spi.ResourceDefinition;
+import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.AggregateGaugeMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.AggregatedGaugeMetric;
 import com.contentgrid.surveyor.spi.storage.EventCountMetric;
 import com.contentgrid.surveyor.spi.storage.GaugeMetric;
+import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.Resource;
 import com.contentgrid.surveyor.spi.storage.StoreEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.StoreGaugeMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.TimeInterval;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Duration;
@@ -17,11 +19,14 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class MetricsGateway implements StoreGaugeMetricSpiPort, StoreEventCountMetricSpiPort,
         AggregateEventCountMetricSpiPort,
-        AggregateGaugeMetricSpiPort {
+        AggregateGaugeMetricSpiPort,
+        LastEventCountMetricSpiPort {
+
     private final List<EventCountMetric> eventCountMetrics = new LinkedList<>();
     private final List<GaugeMetric> gaugeMetrics = new LinkedList<>();
 
@@ -41,7 +46,7 @@ public class MetricsGateway implements StoreGaugeMetricSpiPort, StoreEventCountM
                             .reduce((m1, m2) -> new EventCountMetric(
                                     merge(m1.getMeasureInterval(), m2.getMeasureInterval()),
                                     m1.getResource(),
-                                    m1.getCount().add(m2.getCount())
+                                    m1.getValue().add(m2.getValue())
                             ))
                             .stream();
                 })
@@ -62,14 +67,16 @@ public class MetricsGateway implements StoreGaugeMetricSpiPort, StoreEventCountM
                                 var maxTimeStamp = Instant.MIN;
                                 List<BigInteger> values = new ArrayList<>();
                                 for (GaugeMetric metric : filteredMetrics) {
-                                    if(averagingTimeInterval.contains(metric.getMeasureTime())) {
-                                        minTimeStamp = minTimeStamp.isBefore(metric.getMeasureTime())?minTimeStamp:metric.getMeasureTime();
-                                        maxTimeStamp = maxTimeStamp.isAfter(metric.getMeasureTime())?maxTimeStamp:metric.getMeasureTime();
+                                    if (averagingTimeInterval.contains(metric.getMeasureTime())) {
+                                        minTimeStamp = minTimeStamp.isBefore(metric.getMeasureTime()) ? minTimeStamp
+                                                : metric.getMeasureTime();
+                                        maxTimeStamp = maxTimeStamp.isAfter(metric.getMeasureTime()) ? maxTimeStamp
+                                                : metric.getMeasureTime();
                                         values.add(metric.getValue());
                                     }
                                 }
 
-                                if(values.isEmpty()) {
+                                if (values.isEmpty()) {
                                     return Stream.empty();
                                 }
                                 var total = values.stream()
@@ -78,7 +85,7 @@ public class MetricsGateway implements StoreGaugeMetricSpiPort, StoreEventCountM
                                         .divide(BigDecimal.valueOf(values.size()));
 
                                 return Stream.of(new AggregatedGaugeMetric(
-                                        new TimeInterval(minTimeStamp, maxTimeStamp),
+                                        TimeInterval.between(minTimeStamp, maxTimeStamp),
                                         resource,
                                         total
                                 ));
@@ -95,20 +102,20 @@ public class MetricsGateway implements StoreGaugeMetricSpiPort, StoreEventCountM
 
     private static TimeInterval merge(TimeInterval ti1, TimeInterval ti2) {
         Instant startTime;
-        if(ti1.getStartTime().isBefore(ti2.getStartTime())) {
+        if (ti1.getStartTime().isBefore(ti2.getStartTime())) {
             startTime = ti1.getStartTime();
         } else {
             startTime = ti2.getStartTime();
         }
 
         Instant endTime;
-        if(ti1.getEndTime().isBefore(ti2.getEndTime())) {
+        if (ti1.getEndTime().isBefore(ti2.getEndTime())) {
             endTime = ti2.getEndTime();
         } else {
             endTime = ti1.getEndTime();
         }
 
-        return new TimeInterval(startTime, endTime);
+        return TimeInterval.between(startTime, endTime);
     }
 
     @Override
@@ -119,5 +126,13 @@ public class MetricsGateway implements StoreGaugeMetricSpiPort, StoreEventCountM
     @Override
     public void storeGaugeMetric(GaugeMetric gaugeMetric) {
         gaugeMetrics.add(gaugeMetric);
+    }
+
+    @Override
+    public Optional<TimeInterval> getLastEventCountMetricInterval(ResourceDefinition resourceDefinition) {
+        return eventCountMetrics.stream()
+                .filter(m -> Objects.equals(m.getResource().getDefinition(), resourceDefinition))
+                .map(EventCountMetric::getMeasureInterval)
+                .reduce((a, b) -> a.getEndTime().isBefore(b.getEndTime()) ? b : a);
     }
 }

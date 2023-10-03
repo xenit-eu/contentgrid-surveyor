@@ -1,18 +1,24 @@
 package com.contentgrid.surveyor.spi.source;
 
+import com.contentgrid.surveyor.spi.TimeInterval;
 import java.time.Instant;
 import java.util.stream.Stream;
 import lombok.experimental.StandardException;
 
 public interface EventMetricsSource {
 
-    Stream<CollectedMetric> collectMetrics(Instant referenceTime) throws CollectionFailedException;
+    boolean supports(MetricCollectionConfig config);
 
-    Stream<CollectedMetric> collectMetricsForBackfilling(TimeInterval interval) throws CollectionFailedException;
+    Stream<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant referenceTime)
+            throws CollectionFailedException;
 
-    default Stream<CollectedMetric> collectMetricsForBackfilling(Instant startTime, Instant endTime)
+    Stream<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, TimeInterval interval)
+            throws CollectionFailedException;
+
+    default Stream<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, Instant startTime,
+            Instant endTime)
             throws CollectionFailedException {
-        return collectMetricsForBackfilling(TimeInterval.between(startTime, endTime));
+        return collectMetricsForBackfilling(config, TimeInterval.between(startTime, endTime));
     }
 
     @StandardException

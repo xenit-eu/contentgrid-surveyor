@@ -2,10 +2,11 @@ package com.contentgrid.surveyor.infrastructure.storage.memory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.contentgrid.surveyor.spi.ResourceDefinition;
+import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.storage.AggregateGaugeMetricSpiPort.AggregationConfiguration;
 import com.contentgrid.surveyor.spi.storage.GaugeMetric;
 import com.contentgrid.surveyor.spi.storage.Resource;
-import com.contentgrid.surveyor.spi.storage.TimeInterval;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Duration;
@@ -14,15 +15,16 @@ import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.Test;
 
 class MetricsGatewayTest {
+
     @Test
     void storeAndAggregateGauges() {
         var gateway = new MetricsGateway();
-        var resource = new Resource("x", "y", "z");
+        var resource = new Resource(new ResourceDefinition("a", "x", "y"), "y");
 
         var startTime = Instant.parse("2020-01-01T00:00:00Z");
         var measureInterval = Duration.of(1, ChronoUnit.MINUTES);
 
-        for(int i = 0; i < 600; i++) {
+        for (int i = 0; i < 600; i++) {
             gateway.storeGaugeMetric(new GaugeMetric(
                     startTime.plus(measureInterval.multipliedBy(i)),
                     resource,
@@ -30,7 +32,7 @@ class MetricsGatewayTest {
             ));
         }
 
-        var aggregation = gateway.getAggregatedGaugeMetric(resource, new TimeInterval(
+        var aggregation = gateway.getAggregatedGaugeMetric(resource, TimeInterval.between(
                 Instant.parse("2020-01-01T00:10:00Z"),
                 Instant.parse("2020-01-01T02:10:00Z")
         ), AggregationConfiguration.builder()
@@ -44,7 +46,7 @@ class MetricsGatewayTest {
         assertThat(aggregation.getAggregate()).isEqualTo(BigDecimal.valueOf(139.0));
 
         // With an offset less than the measurement interval
-        aggregation = gateway.getAggregatedGaugeMetric(resource, new TimeInterval(
+        aggregation = gateway.getAggregatedGaugeMetric(resource, TimeInterval.between(
                 Instant.parse("2020-01-01T00:09:30Z"),
                 Instant.parse("2020-01-01T02:09:30Z")
         ), AggregationConfiguration.builder()
