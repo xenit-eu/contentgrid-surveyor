@@ -14,8 +14,10 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collector;
@@ -28,44 +30,57 @@ public class MetricsGateway implements StoreEventCountMetricSpiPort,
         AggregateEventCountMetricSpiPort,
         LastEventCountMetricSpiPort {
 
-    private final List<EventCountMetric> eventCountMetrics = new LinkedList<>();
+    private final Map<Resource, List<EventCountMetric>> eventCountMetrics = new HashMap<>();
+    private final Map<ResourceDefinition, TimeInterval> lastApplied = new HashMap<>();
 
     @Override
     public List<EventCountMetric> getAggregatedEventCountMetrics(Resource resource, TimeInterval interval,
             Duration chunkDuration, GroupingConfiguration groupingConfiguration) {
 
-        return interval.chunkedBy(chunkDuration)
-                .flatMap(metricTimeInterval -> {
-                    return metricTimeInterval.chunkedBy(groupingConfiguration.groupInterval())
-                            .flatMap(groupInterval -> groupedMetrics(resource, groupingConfiguration.operation(),
-                                    groupInterval))
-                            .reduce((m1, m2) -> new EventCountMetric(
-                                    merge(m1.getMeasureInterval(), m2.getMeasureInterval()),
-                                    m1.getResource(),
-                                    m1.getValue().add(m2.getValue())
-                            ))
-                            .stream();
-                })
-                .toList();
+        return findEventCountMetrics(resource, interval, List.of(
+                GroupingConfiguration.builder()
+                        .groupInterval(chunkDuration)
+                        .operation(GroupOperation.SUM)
+                        .build(),
+                groupingConfiguration
+        ));
     }
 
-    private Stream<EventCountMetric> groupedMetrics(Resource resource, GroupOperation groupOperation,
-            TimeInterval groupInterval) {
-        return getMetricsInInterval(resource, groupInterval)
-                .collect(Collectors.teeing(
-                        Collectors.mapping(EventCountMetric::getMeasureInterval,
-                                Collectors.reducing(MetricsGateway::merge)),
-                        Collectors.mapping(EventCountMetric::getValue, collectorFor(groupOperation)),
-                        (maybeMergedInterval, maybeValue) -> maybeMergedInterval.flatMap(
-                                mergedInterval -> maybeValue.map(
-                                        value -> new EventCountMetric(mergedInterval, resource,
-                                                value)))
-                ))
-                .stream();
+    @Override
+    public List<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
+            List<GroupingConfiguration> groupingConfigurations) {
+        return findEventCountMetricsRecursive(resource, interval, groupingConfigurations).toList();
+    }
+
+    public Stream<EventCountMetric> findEventCountMetricsRecursive(Resource resource, TimeInterval interval,
+            List<GroupingConfiguration> groupingConfigurations) {
+        if (groupingConfigurations.isEmpty()) {
+            return getMetricsInInterval(resource, interval);
+        }
+        var firstGroup = groupingConfigurations.get(0);
+        var otherGroups = groupingConfigurations.subList(1, groupingConfigurations.size());
+        return interval.chunkedBy(firstGroup.groupInterval())
+                .flatMap(groupInterval -> findEventCountMetricsRecursive(resource, groupInterval, otherGroups)
+                        .collect(groupingCollector(resource, firstGroup.operation()))
+                        .stream()
+                );
+    }
+
+    private Collector<EventCountMetric, ?, Optional<EventCountMetric>> groupingCollector(Resource resource,
+            GroupOperation groupOperation) {
+        return Collectors.teeing(
+                Collectors.mapping(EventCountMetric::getMeasureInterval,
+                        Collectors.reducing(MetricsGateway::merge)),
+                Collectors.mapping(EventCountMetric::getValue, collectorFor(groupOperation)),
+                (maybeMergedInterval, maybeValue) -> maybeMergedInterval.flatMap(
+                        mergedInterval -> maybeValue.map(
+                                value -> new EventCountMetric(mergedInterval, resource,
+                                        value)))
+        );
     }
 
     private Stream<EventCountMetric> getMetricsInInterval(Resource resource, TimeInterval groupInterval) {
-        return eventCountMetrics.stream()
+        return List.copyOf(eventCountMetrics.getOrDefault(resource, List.of())).stream()
                 .filter(m -> Objects.equals(m.getResource(), resource))
                 .filter(m -> {
                     var contains = groupInterval.contains(m.getMeasureInterval());
@@ -109,15 +124,18 @@ public class MetricsGateway implements StoreEventCountMetricSpiPort,
 
     @Override
     public void storeEventMetric(EventCountMetric metric) {
-        eventCountMetrics.add(metric);
+        eventCountMetrics.computeIfAbsent(metric.getResource(), _key -> new LinkedList<>()).add(metric);
+        lastApplied.compute(metric.getResource().getDefinition(), (_key, interval) -> {
+            if (interval == null || interval.getEndTime().isBefore(metric.getMeasureInterval().getEndTime())) {
+                return metric.getMeasureInterval();
+            }
+            return interval;
+        });
     }
 
     @Override
     public Optional<TimeInterval> getLastEventCountMetricInterval(ResourceDefinition resourceDefinition) {
-        return eventCountMetrics.stream()
-                .filter(m -> Objects.equals(m.getResource().getDefinition(), resourceDefinition))
-                .map(EventCountMetric::getMeasureInterval)
-                .reduce((a, b) -> a.getEndTime().isBefore(b.getEndTime()) ? b : a);
+        return Optional.ofNullable(lastApplied.get(resourceDefinition));
     }
 
     @AllArgsConstructor(access = AccessLevel.PRIVATE)

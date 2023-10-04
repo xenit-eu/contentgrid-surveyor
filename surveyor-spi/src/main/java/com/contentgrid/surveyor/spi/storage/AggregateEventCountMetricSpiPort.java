@@ -19,6 +19,9 @@ public interface AggregateEventCountMetricSpiPort {
     List<EventCountMetric> getAggregatedEventCountMetrics(Resource resource, TimeInterval interval,
             Duration chunkDuration, GroupingConfiguration groupingConfiguration);
 
+    List<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
+            List<GroupingConfiguration> groupingConfigurations);
+
     @Builder
     record GroupingConfiguration(
             Duration groupInterval,
