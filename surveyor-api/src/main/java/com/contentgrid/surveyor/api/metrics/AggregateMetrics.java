@@ -1,18 +1,18 @@
 package com.contentgrid.surveyor.api.metrics;
 
-import java.time.Duration;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import lombok.Builder;
 import lombok.NonNull;
 
-public interface FindMetrics {
+public interface AggregateMetrics {
 
-    Map<Resource, List<Metric>> findMetrics(FindMetricsCommand command);
+    Map<Resource, Metric> aggregateMetrics(AggregateMetricsCommand command);
 
     @Builder
-    record FindMetricsCommand(
+    record AggregateMetricsCommand(
             @NonNull
             String system,
             @NonNull
@@ -20,10 +20,8 @@ public interface FindMetrics {
             @NonNull
             String resourceId,
             Instant start,
-            Instant end,
-            Duration step
+            Instant end
     ) {
 
     }
-
 }
