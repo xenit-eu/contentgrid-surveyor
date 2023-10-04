@@ -30,7 +30,16 @@ public class SurveyorConfiguration {
 
     @Bean
     List<MetricCollectionConfig> metricCollectionConfigList(SurveyorProperties surveyorProperties) {
-        return surveyorProperties.metrics();
+        return surveyorProperties.metrics().stream()
+                .map(metric -> MetricCollectionConfig.builder()
+                        .type(metric.type())
+                        .interval(metric.queryInterval())
+                        .query(metric.query())
+                        .metric(metric.metric())
+                        .resourceType(metric.resourceType())
+                        .resourceIdLabel(metric.resourceIdLabel())
+                        .build())
+                .toList();
     }
 
     @Bean
