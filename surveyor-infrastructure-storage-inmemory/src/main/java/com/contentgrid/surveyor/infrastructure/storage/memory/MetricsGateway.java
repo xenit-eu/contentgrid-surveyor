@@ -3,46 +3,42 @@ package com.contentgrid.surveyor.infrastructure.storage.memory;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.AggregateGaugeMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.AggregatedGaugeMetric;
+import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.GroupingConfiguration.GroupOperation;
 import com.contentgrid.surveyor.spi.storage.EventCountMetric;
-import com.contentgrid.surveyor.spi.storage.GaugeMetric;
 import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.Resource;
 import com.contentgrid.surveyor.spi.storage.StoreEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.StoreGaugeMetricSpiPort;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 
-public class MetricsGateway implements StoreGaugeMetricSpiPort, StoreEventCountMetricSpiPort,
+public class MetricsGateway implements StoreEventCountMetricSpiPort,
         AggregateEventCountMetricSpiPort,
-        AggregateGaugeMetricSpiPort,
         LastEventCountMetricSpiPort {
 
     private final List<EventCountMetric> eventCountMetrics = new LinkedList<>();
-    private final List<GaugeMetric> gaugeMetrics = new LinkedList<>();
 
     @Override
     public List<EventCountMetric> getAggregatedEventCountMetrics(Resource resource, TimeInterval interval,
-            Duration chunkDuration) {
+            Duration chunkDuration, GroupingConfiguration groupingConfiguration) {
 
         return interval.chunkedBy(chunkDuration)
                 .flatMap(metricTimeInterval -> {
-                    return eventCountMetrics.stream()
-                            .filter(m -> Objects.equals(m.getResource(), resource))
-                            .filter(m -> {
-                                var contains = metricTimeInterval.contains(m.getMeasureInterval());
-
-                                return contains.isContained() && !contains.isPartiallyAfter();
-                            })
+                    return metricTimeInterval.chunkedBy(groupingConfiguration.groupInterval())
+                            .flatMap(groupInterval -> groupedMetrics(resource, groupingConfiguration.operation(),
+                                    groupInterval))
                             .reduce((m1, m2) -> new EventCountMetric(
                                     merge(m1.getMeasureInterval(), m2.getMeasureInterval()),
                                     m1.getResource(),
@@ -53,51 +49,43 @@ public class MetricsGateway implements StoreGaugeMetricSpiPort, StoreEventCountM
                 .toList();
     }
 
-    @Override
-    public List<AggregatedGaugeMetric> getAggregatedGaugeMetrics(Resource resource, TimeInterval interval,
-            AggregationConfiguration aggregation, Duration chunkDuration) {
-        var filteredMetrics = gaugeMetrics.stream()
+    private Stream<EventCountMetric> groupedMetrics(Resource resource, GroupOperation groupOperation,
+            TimeInterval groupInterval) {
+        return getMetricsInInterval(resource, groupInterval)
+                .collect(Collectors.teeing(
+                        Collectors.mapping(EventCountMetric::getMeasureInterval,
+                                Collectors.reducing(MetricsGateway::merge)),
+                        Collectors.mapping(EventCountMetric::getValue, collectorFor(groupOperation)),
+                        (maybeMergedInterval, maybeValue) -> maybeMergedInterval.flatMap(
+                                mergedInterval -> maybeValue.map(
+                                        value -> new EventCountMetric(mergedInterval, resource,
+                                                value)))
+                ))
+                .stream();
+    }
+
+    private Stream<EventCountMetric> getMetricsInInterval(Resource resource, TimeInterval groupInterval) {
+        return eventCountMetrics.stream()
                 .filter(m -> Objects.equals(m.getResource(), resource))
-                .toList();
-        return interval.chunkedBy(chunkDuration)
-                .flatMap(metricTimeInterval -> {
-                    return metricTimeInterval.chunkedBy(aggregation.getAveragingWindow())
-                            .flatMap(averagingTimeInterval -> {
-                                var minTimeStamp = Instant.MAX;
-                                var maxTimeStamp = Instant.MIN;
-                                List<BigInteger> values = new ArrayList<>();
-                                for (GaugeMetric metric : filteredMetrics) {
-                                    if (averagingTimeInterval.contains(metric.getMeasureTime())) {
-                                        minTimeStamp = minTimeStamp.isBefore(metric.getMeasureTime()) ? minTimeStamp
-                                                : metric.getMeasureTime();
-                                        maxTimeStamp = maxTimeStamp.isAfter(metric.getMeasureTime()) ? maxTimeStamp
-                                                : metric.getMeasureTime();
-                                        values.add(metric.getValue());
-                                    }
-                                }
+                .filter(m -> {
+                    var contains = groupInterval.contains(m.getMeasureInterval());
 
-                                if (values.isEmpty()) {
-                                    return Stream.empty();
-                                }
-                                var total = values.stream()
-                                        .map(BigDecimal::new)
-                                        .reduce(BigDecimal::add).orElseThrow()
-                                        .divide(BigDecimal.valueOf(values.size()));
+                    return contains.isContained() || (contains.isPartiallyBefore()
+                            && !contains.isPartiallyAfter());
+                });
+    }
 
-                                return Stream.of(new AggregatedGaugeMetric(
-                                        TimeInterval.between(minTimeStamp, maxTimeStamp),
-                                        resource,
-                                        total
-                                ));
-                            })
-                            .reduce((m1, m2) -> new AggregatedGaugeMetric(
-                                    merge(m1.getInterval(), m2.getInterval()),
-                                    m1.getResource(),
-                                    m1.getAggregate().add(m2.getAggregate())
-                            ))
-                            .stream();
-                })
-                .toList();
+    private Collector<BigDecimal, ?, Optional<BigDecimal>> collectorFor(GroupOperation operation) {
+        return switch (operation) {
+            case AVERAGE -> Collector.of(
+                    BigDecimalAverageAccumulator::new,
+                    BigDecimalAverageAccumulator::add,
+                    BigDecimalAverageAccumulator::merge,
+                    BigDecimalAverageAccumulator::getAverage
+            );
+            case MAX -> Collectors.maxBy(BigDecimal::compareTo);
+            case MIN -> Collectors.minBy(BigDecimal::compareTo);
+        };
     }
 
     private static TimeInterval merge(TimeInterval ti1, TimeInterval ti2) {
@@ -124,15 +112,43 @@ public class MetricsGateway implements StoreGaugeMetricSpiPort, StoreEventCountM
     }
 
     @Override
-    public void storeGaugeMetric(GaugeMetric gaugeMetric) {
-        gaugeMetrics.add(gaugeMetric);
-    }
-
-    @Override
     public Optional<TimeInterval> getLastEventCountMetricInterval(ResourceDefinition resourceDefinition) {
         return eventCountMetrics.stream()
                 .filter(m -> Objects.equals(m.getResource().getDefinition(), resourceDefinition))
                 .map(EventCountMetric::getMeasureInterval)
                 .reduce((a, b) -> a.getEndTime().isBefore(b.getEndTime()) ? b : a);
+    }
+
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    private static class BigDecimalAverageAccumulator {
+
+
+        private BigInteger count;
+        private BigDecimal tally;
+
+        public BigDecimalAverageAccumulator() {
+            this(BigInteger.ZERO, BigDecimal.ZERO);
+        }
+
+        public static BigDecimalAverageAccumulator of(BigDecimal bigDecimal) {
+            return new BigDecimalAverageAccumulator(BigInteger.ONE, bigDecimal);
+        }
+
+        public void add(BigDecimal bigDecimal) {
+            count = count.add(BigInteger.ONE);
+            tally = tally.add(bigDecimal);
+        }
+
+        public BigDecimalAverageAccumulator merge(BigDecimalAverageAccumulator accumulator) {
+            return new BigDecimalAverageAccumulator(count.add(accumulator.count), tally.add(accumulator.tally));
+        }
+
+        public Optional<BigDecimal> getAverage() {
+            if (Objects.equals(count, BigInteger.ZERO)) {
+                return Optional.empty();
+            }
+            return Optional.of(tally.divide(new BigDecimal(count),
+                    new MathContext(tally.precision() + 1, RoundingMode.HALF_EVEN)));
+        }
     }
 }

@@ -25,7 +25,8 @@ public class TimeInterval {
 
     public Overlap contains(TimeInterval container) {
         var containsStartTime = contains(container.getStartTime());
-        var containsEndTime = contains(container.getEndTime());
+        var containsEndTime = container.getEndTime().isAfter(startTime) && (container.getEndTime().isBefore(endTime)
+                || container.getEndTime().equals(endTime));
         if (containsStartTime && containsEndTime) {
             return Overlap.FULLY;
         }
@@ -62,10 +63,10 @@ public class TimeInterval {
 
     public Stream<TimeInterval> chunkedBy(Duration chunkDuration) {
         return Stream.iterate(
-                startTime,
-                time -> time.isBefore(endTime),
-                time -> time.plus(chunkDuration)
-        ).map(chunkStartTime -> TimeInterval.after(chunkStartTime, chunkDuration));
+                TimeInterval.after(startTime, chunkDuration),
+                time -> this.contains(time).isContained(),
+                TimeInterval::nextInterval
+        );
     }
 
     public String toString() {
