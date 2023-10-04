@@ -28,7 +28,8 @@ public interface AggregateEventCountMetricSpiPort {
         public enum GroupOperation {
             AVERAGE,
             MAX,
-            MIN
+            MIN,
+            SUM
         }
     }
 }

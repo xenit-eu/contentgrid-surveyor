@@ -85,6 +85,7 @@ public class MetricsGateway implements StoreEventCountMetricSpiPort,
             );
             case MAX -> Collectors.maxBy(BigDecimal::compareTo);
             case MIN -> Collectors.minBy(BigDecimal::compareTo);
+            case SUM -> Collectors.reducing(BigDecimal::add);
         };
     }
 
