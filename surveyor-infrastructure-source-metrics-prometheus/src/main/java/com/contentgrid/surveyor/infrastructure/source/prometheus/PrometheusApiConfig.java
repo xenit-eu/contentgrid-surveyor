@@ -9,8 +9,6 @@ import org.springframework.web.reactive.function.client.WebClient.Builder;
 @lombok.Builder
 public record PrometheusApiConfig(
         @NonNull
-        String system,
-        @NonNull
         URI url,
         @NonNull
         Map<String, String> headers,

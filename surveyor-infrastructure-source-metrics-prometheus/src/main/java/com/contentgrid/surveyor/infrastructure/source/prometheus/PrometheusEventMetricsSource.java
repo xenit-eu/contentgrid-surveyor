@@ -5,6 +5,7 @@ import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.Prome
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse.PrometheusVectorData;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse.Status;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusVectorResult;
+import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.source.CollectedMetric;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
@@ -12,9 +13,11 @@ import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.Builder;
@@ -22,13 +25,19 @@ import reactor.core.publisher.Flux;
 
 @Slf4j
 @RequiredArgsConstructor
+@ToString(onlyExplicitlyIncluded = true)
 public class PrometheusEventMetricsSource implements EventMetricsSource {
 
     private final WebClient webClient;
     private final PrometheusApiConfig config;
+    @ToString.Include
+    private final String systemName;
+    @ToString.Include
+    private final String type;
 
-    public PrometheusEventMetricsSource(WebClient.Builder clientBuilder, PrometheusApiConfig config) {
-        this(configureClient(clientBuilder, config), config);
+    public PrometheusEventMetricsSource(WebClient.Builder clientBuilder, PrometheusApiConfig config, String systemName,
+            String type) {
+        this(configureClient(clientBuilder, config), config, systemName, type);
     }
 
     private static WebClient configureClient(WebClient.Builder clientBuilder, Consumer<Builder> configurer) {
@@ -37,9 +46,13 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
         return builder.build();
     }
 
+
     @Override
-    public boolean supports(MetricCollectionConfig config) {
-        return Objects.equals(config.resourceDefinition().sourceSystem(), this.config.system());
+    public Optional<ResourceDefinition> resourceDefinition(MetricCollectionConfig config) {
+        if (Objects.equals(config.type(), type)) {
+            return Optional.of(new ResourceDefinition(systemName, config.resourceType(), config.metric()));
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -105,7 +118,7 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
 
     private CollectedMetric createMetric(MetricCollectionConfig config, PrometheusVectorResult prometheusVectorResult) {
         return new CollectedMetric(
-                config.resourceDefinition(),
+                new ResourceDefinition(this.systemName, config.resourceType(), config.metric()),
                 Objects.requireNonNull(prometheusVectorResult.metric().get(config.resourceIdLabel()),
                         () -> "Metric is missing label %s".formatted(config.resourceIdLabel())),
                 TimeInterval.after(prometheusVectorResult.value().timestamp(), config.interval()),

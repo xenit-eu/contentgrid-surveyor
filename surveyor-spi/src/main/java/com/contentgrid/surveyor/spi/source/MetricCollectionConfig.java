@@ -5,7 +5,9 @@ import lombok.Builder;
 
 @Builder
 public record MetricCollectionConfig(
-        ResourceDefinition resourceDefinition,
+        String type,
+        String resourceType,
+        String metric,
         String resourceIdLabel,
         String query,
         Duration interval

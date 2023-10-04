@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PullMetricsUseCase implements PullMetrics {
 
-    private final List<EventMetricsSource> metricSources;
+    private final List<? extends EventMetricsSource> metricSources;
     private final List<MetricCollectionConfig> collectionConfigs;
     private final StoreEventCountMetricSpiPort storeEventCountMetricSpiPort;
     private final LastEventCountMetricSpiPort lastEventCountMetricSpiPort;
@@ -28,12 +28,13 @@ public class PullMetricsUseCase implements PullMetrics {
     @Override
     public void pullMetrics() {
         for (MetricCollectionConfig collectionConfig : collectionConfigs) {
-            var maybeLastEvent = lastEventCountMetricSpiPort.getLastEventCountMetricInterval(
-                    collectionConfig.resourceDefinition());
             for (EventMetricsSource metricSource : metricSources) {
-                if (!metricSource.supports(collectionConfig)) {
+                var maybeResourceDefinition = metricSource.resourceDefinition(collectionConfig);
+                if (maybeResourceDefinition.isEmpty()) {
                     continue;
                 }
+                var maybeLastEvent = lastEventCountMetricSpiPort.getLastEventCountMetricInterval(
+                        maybeResourceDefinition.orElseThrow());
 
                 var referenceTime = Instant.now().truncatedTo(ChronoUnit.DAYS);
                 maybeLastEvent.ifPresentOrElse(lastEvent -> {
@@ -104,7 +105,8 @@ public class PullMetricsUseCase implements PullMetrics {
         var metrics = metricSource.collectMetrics(metricCollectionConfig, timeInterval.getStartTime())
                 .map(metric -> new EventCountMetric(
                         metric.timeInterval(),
-                        new Resource(metricCollectionConfig.resourceDefinition(), metric.resourceId()),
+                        new Resource(metricSource.resourceDefinition(metricCollectionConfig).orElseThrow(),
+                                metric.resourceId()),
                         metric.value()
                 )).toList();
         log.info("Pulled new metrics from source {} (interval {}): {} datapoints", metricSource, timeInterval,
@@ -126,7 +128,8 @@ public class PullMetricsUseCase implements PullMetrics {
         var metrics = metricSource.collectMetricsForBackfilling(metricCollectionConfig, timeInterval)
                 .map(metric -> new EventCountMetric(
                         metric.timeInterval(),
-                        new Resource(metricCollectionConfig.resourceDefinition(), metric.resourceId()),
+                        new Resource(metricSource.resourceDefinition(metricCollectionConfig).orElseThrow(),
+                                metric.resourceId()),
                         metric.value()
                 )).toList();
         log.info("Pulled new metrics from source {} (interval {}): {} datapoints", metricSource, timeInterval,

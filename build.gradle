@@ -1,45 +1,45 @@
 plugins {
-	id 'base'
+    id 'base'
 }
 
 allprojects {
-	pluginManager.withPlugin('java') {
-		java {
-			toolchain {
-				languageVersion = JavaLanguageVersion.of(17)
-			}
-		}
+    pluginManager.withPlugin('java') {
+        java {
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(17)
+            }
+        }
 
-		tasks.named('test') {
-			useJUnitPlatform()
-		}
-	}
+        tasks.named('test') {
+            useJUnitPlatform()
+        }
+    }
 
-	pluginManager.withPlugin('io.freefair.lombok') {
-		lombok {
-			version = lombokVersion
-		}
-	}
+    pluginManager.withPlugin('io.freefair.lombok') {
+        lombok {
+            version = lombokVersion
+        }
+    }
 
-	pluginManager.withPlugin('org.springframework.boot') {
-		bootBuildImage {
-			imageName = "docker.contentgrid.com/surveyor:${project.version}"
-			tags = "${project.version}".endsWith('SNAPSHOT') ? [ 'docker.contentgrid.com/surveyor:SNAPSHOT' ] : null
+    pluginManager.withPlugin('org.springframework.boot') {
+        bootBuildImage {
+            imageName = "docker.contentgrid.com/surveyor:${project.version}"
+            tags = "${project.version}".endsWith('SNAPSHOT') ? ['docker.contentgrid.com/surveyor:SNAPSHOT'] : null
 
-			docker {
-				publishRegistry {
-					url = project.findProperty('DOCKER_PUBLISH_REGISTRY_URL')
-					username = project.findProperty('DOCKER_PUBLISH_REGISTRY_USERNAME')
-					password = project.findProperty('DOCKER_PUBLISH_REGISTRY_PASSWORD')
-				}
-			}
-		}
+            docker {
+                publishRegistry {
+                    url = project.findProperty('DOCKER_PUBLISH_REGISTRY_URL')
+                    username = project.findProperty('DOCKER_PUBLISH_REGISTRY_USERNAME')
+                    password = project.findProperty('DOCKER_PUBLISH_REGISTRY_PASSWORD')
+                }
+            }
+        }
 
-		bootRun {
-			args = ["--spring.profiles.active=bootRun"]
-		}
+        bootRun {
+            args = ["--spring.profiles.active=bootRun"]
+        }
 
-	}
+    }
 }
 
 

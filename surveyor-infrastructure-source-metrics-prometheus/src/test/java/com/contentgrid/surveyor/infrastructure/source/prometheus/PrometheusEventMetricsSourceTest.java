@@ -92,17 +92,18 @@ class PrometheusEventMetricsSourceTest {
     @Test
     void queryValueAt() throws CollectionFailedException {
         var api = PrometheusApiConfig.builder()
-                .system("prom")
                 .url(PROMETHEUS.getApiUrl())
                 .headers(Map.of())
                 .build();
         var config = MetricCollectionConfig.builder()
-                .resourceDefinition(new ResourceDefinition("prom", "test", "test"))
+                .type("prometheus")
+                .resourceType("test")
+                .metric("test")
                 .query("fixed_metric_1")
                 .interval(Duration.ofHours(1))
                 .resourceIdLabel("resource")
                 .build();
-        var source = new PrometheusEventMetricsSource(WebClient.builder(), api);
+        var source = new PrometheusEventMetricsSource(WebClient.builder(), api, "prometheus-test", config.type());
 
         assertThat(source.collectMetrics(config, FAKE_METRICS_START)).satisfiesExactlyInAnyOrder(
                 resourceAbc -> {
