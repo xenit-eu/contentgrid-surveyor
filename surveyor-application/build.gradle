@@ -16,7 +16,7 @@ dependencies {
 	implementation project(':surveyor-infrastructure-storage-inmemory')
 	// implementation project(':surveyor-infrastructure-storage-data-jdbc')
 	implementation project(':surveyor-infrastructure-source-metrics-prometheus')
-	implementation project(':surveyor-infrastructure-source-events-loki')
+	implementation project(':surveyor-infrastructure-config-spring')
 
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 	runtimeOnly 'org.postgresql:postgresql'

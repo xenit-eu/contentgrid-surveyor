@@ -1,36 +1,33 @@
 package com.contentgrid.surveyor.application.configuration;
 
-import com.contentgrid.surveyor.api.metrics.FindMetrics;
+import com.contentgrid.surveyor.api.metrics.FindInsightMetrics;
 import com.contentgrid.surveyor.api.pull.PullMetrics;
-import com.contentgrid.surveyor.application.configuration.properties.SurveyorProperties;
-import com.contentgrid.surveyor.drivers.schedule.ScheduledPullMetricsComponent;
+import com.contentgrid.surveyor.application.configuration.properties.SurveyorSourceProperties;
+import com.contentgrid.surveyor.infrastructure.config.spring.properties.SurveyorProperties;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.PrometheusApiConfig;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.PrometheusEventMetricsSource;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
+import com.contentgrid.surveyor.spi.config.FindResourceAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
 import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
 import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.GroupingConfiguration;
 import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.StoreEventCountMetricSpiPort;
 import com.contentgrid.surveyor.usecase.metrics.FindMetricsUseCase;
-import com.contentgrid.surveyor.usecase.metrics.FindMetricsUseCase.GroupingKey;
 import com.contentgrid.surveyor.usecase.pull.PullMetricsUseCase;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.context.annotation.Import;
 import org.springframework.web.reactive.function.client.WebClient;
 
-@EnableScheduling
-@EnableConfigurationProperties(SurveyorProperties.class)
+@EnableConfigurationProperties(SurveyorSourceProperties.class)
+@Import(SurveyorSpringConfiguration.class)
 @Configuration(proxyBeanMethods = false)
 public class SurveyorConfiguration {
     @Bean
@@ -53,8 +50,9 @@ public class SurveyorConfiguration {
     }
 
     @Bean
-    List<PrometheusEventMetricsSource> prometheusEventMetricsSources(SurveyorProperties surveyorProperties, WebClient.Builder webclientBuilder) {
-        return surveyorProperties.systems().prometheus()
+    List<PrometheusEventMetricsSource> prometheusEventMetricsSources(SurveyorSourceProperties sourceProperties,
+            WebClient.Builder webclientBuilder) {
+        return sourceProperties.prometheus()
                 .stream()
                 .map(prometheusProperties -> {
                     var apiConfig = PrometheusApiConfig.builder()
@@ -68,17 +66,6 @@ public class SurveyorConfiguration {
                             prometheusProperties.type());
                 })
                 .toList();
-    }
-
-    @Bean
-    Map<GroupingKey, GroupingConfiguration> metricsGroupingConfiguration(SurveyorProperties surveyorProperties) {
-        return surveyorProperties.metrics().stream()
-                .map(metric -> Map.entry(new GroupingKey(metric.resourceType(), metric.metric()),
-                        GroupingConfiguration.builder()
-                                .groupInterval(metric.aggregation().period())
-                                .operation(metric.aggregation().operation())
-                                .build()))
-                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
     }
 
     @Bean
@@ -108,9 +95,10 @@ public class SurveyorConfiguration {
     }
 
     @Bean
-    FindMetrics findMetrics(Map<GroupingKey, GroupingConfiguration> configuration,
+    FindInsightMetrics findMetrics(FindResourceAggregationConfigurationSpiPort resourceAggregationConfigurationSpiPort,
             FindResourceDefinitionsSpiPort findResourceDefinitionsSpiPort,
             AggregateEventCountMetricSpiPort aggregateEventCountMetricSpiPort) {
-        return new FindMetricsUseCase(configuration, aggregateEventCountMetricSpiPort, findResourceDefinitionsSpiPort);
+        return new FindMetricsUseCase(resourceAggregationConfigurationSpiPort, aggregateEventCountMetricSpiPort,
+                findResourceDefinitionsSpiPort);
     }
 }

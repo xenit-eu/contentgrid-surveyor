@@ -4,6 +4,7 @@ plugins {
 }
 dependencies {
     implementation platform(project(':surveyor-dependencies'))
+    implementation 'org.springframework.boot:spring-boot-starter'
 
     api project(':surveyor-spi')
 

@@ -1,9 +1,9 @@
 package com.contentgrid.surveyor.drivers.web;
 
-import com.contentgrid.surveyor.api.metrics.AggregateMetrics;
-import com.contentgrid.surveyor.api.metrics.AggregateMetrics.AggregateMetricsCommand;
-import com.contentgrid.surveyor.api.metrics.FindMetrics;
-import com.contentgrid.surveyor.api.metrics.FindMetrics.FindMetricsCommand;
+import com.contentgrid.surveyor.api.metrics.BillingMetrics;
+import com.contentgrid.surveyor.api.metrics.BillingMetrics.BillingMetricsCommand;
+import com.contentgrid.surveyor.api.metrics.FindInsightMetrics;
+import com.contentgrid.surveyor.api.metrics.FindInsightMetrics.FindInsightMetricsCommand;
 import java.time.Duration;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
@@ -17,11 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ResourceMetricsController {
 
-    private final FindMetrics findMetrics;
-    private final AggregateMetrics aggregateMetrics;
+    private final FindInsightMetrics findInsightMetrics;
+    private final BillingMetrics billingMetrics;
 
-    @GetMapping("/metrics/{system}/{resourceType}/{resourceId}")
-    public CollectionModel<MetricRepresentationModel> getMetrics(
+    @GetMapping("/metrics/insights/{system}/{resourceType}/{resourceId}")
+    public CollectionModel<MetricRepresentationModel> insightMetrics(
             @PathVariable String system,
             @PathVariable String resourceType,
             @PathVariable String resourceId,
@@ -29,7 +29,7 @@ public class ResourceMetricsController {
             @RequestParam(required = false) Instant end,
             @RequestParam(required = false) Duration step
     ) {
-        return CollectionModel.of(findMetrics.findMetrics(FindMetricsCommand.builder()
+        return CollectionModel.of(findInsightMetrics.findMetricsForInsights(FindInsightMetricsCommand.builder()
                         .system(system)
                         .resourceType(resourceType)
                         .resourceId(resourceId)
@@ -46,15 +46,15 @@ public class ResourceMetricsController {
                 .toList());
     }
 
-    @GetMapping("/metrics/{system}/{resourceType}/{resourceId}/aggregate")
-    public CollectionModel<AggregateRepresentationModel> aggregateMetrics(
+    @GetMapping("/metrics/billing/{system}/{resourceType}/{resourceId}")
+    public CollectionModel<AggregateRepresentationModel> billingMetrics(
             @PathVariable String system,
             @PathVariable String resourceType,
             @PathVariable String resourceId,
             @RequestParam(required = false) Instant start,
             @RequestParam(required = false) Instant end
     ) {
-        return CollectionModel.of(aggregateMetrics.aggregateMetrics(AggregateMetricsCommand.builder()
+        return CollectionModel.of(billingMetrics.findMetricsForBilling(BillingMetricsCommand.builder()
                         .system(system)
                         .resourceType(resourceType)
                         .resourceId(resourceId)

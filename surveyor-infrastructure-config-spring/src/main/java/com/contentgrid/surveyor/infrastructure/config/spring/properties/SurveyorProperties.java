@@ -1,11 +1,11 @@
-package com.contentgrid.surveyor.application.configuration.properties;
+package com.contentgrid.surveyor.infrastructure.config.spring.properties;
 
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "surveyor")
 public record SurveyorProperties(
-        SurveyorSourceProperties systems,
         List<SurveyorMetricProperties> metrics
 ) {
+
 }

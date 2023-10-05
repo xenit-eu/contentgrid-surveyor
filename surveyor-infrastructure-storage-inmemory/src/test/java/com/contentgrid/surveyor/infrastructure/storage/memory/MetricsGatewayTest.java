@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.GroupingConfiguration;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.GroupingConfiguration.GroupOperation;
+import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.AggregationConfiguration;
+import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.AggregationConfiguration.GroupOperation;
 import com.contentgrid.surveyor.spi.storage.EventCountMetric;
 import com.contentgrid.surveyor.spi.storage.Resource;
 import java.math.BigDecimal;
@@ -37,9 +37,9 @@ class MetricsGatewayTest {
         var aggregation = gateway.getAggregatedEventCountMetric(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:10:00Z"),
                         Instant.parse("2020-01-01T02:10:00Z")
-                ), GroupingConfiguration.builder()
-                        .groupInterval(Duration.of(1, ChronoUnit.HOURS))
-                        .operation(GroupOperation.AVERAGE)
+                ), AggregationConfiguration.builder()
+                        .thenGroup(GroupOperation.AVERAGE, Duration.ofHours(1))
+                        .thenGroup(GroupOperation.SUM, Duration.ofHours(2))
                         .build()
         );
 
@@ -54,12 +54,13 @@ class MetricsGatewayTest {
         // averaged over 1 hour: values 9 -> 68 == 38.5
         //                       values 69 -> 128 == 98.5
         aggregation = gateway.getAggregatedEventCountMetric(resource, TimeInterval.between(
-                Instant.parse("2020-01-01T00:09:30Z"),
-                Instant.parse("2020-01-01T02:09:30Z")
-        ), GroupingConfiguration.builder()
-                .groupInterval(Duration.of(1, ChronoUnit.HOURS))
-                .operation(GroupOperation.AVERAGE)
-                .build());
+                        Instant.parse("2020-01-01T00:09:30Z"),
+                        Instant.parse("2020-01-01T02:09:30Z")
+                ), AggregationConfiguration.builder()
+                        .thenGroup(GroupOperation.AVERAGE, Duration.ofHours(1))
+                        .thenGroup(GroupOperation.SUM, Duration.ofHours(2))
+                        .build()
+        );
 
         assertThat(aggregation.getValue()).isEqualTo(BigDecimal.valueOf(38.5 + 98.5));
     }
@@ -85,9 +86,9 @@ class MetricsGatewayTest {
         var aggregation = gateway.getAggregatedEventCountMetric(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:10:00Z"),
                         Instant.parse("2020-01-01T02:10:00Z")
-                ), GroupingConfiguration.builder()
-                        .groupInterval(Duration.of(1, ChronoUnit.HOURS))
-                        .operation(GroupOperation.SUM)
+                ), AggregationConfiguration.builder()
+                        .thenGroup(GroupOperation.SUM, Duration.ofHours(1))
+                        .thenGroup(GroupOperation.SUM, Duration.ofHours(2))
                         .build()
         );
 
@@ -96,23 +97,25 @@ class MetricsGatewayTest {
 
         // When offset, the calculation remains the same
         aggregation = gateway.getAggregatedEventCountMetric(resource, TimeInterval.between(
-                Instant.parse("2020-01-01T00:09:30Z"),
-                Instant.parse("2020-01-01T02:09:30Z")
-        ), GroupingConfiguration.builder()
-                .groupInterval(Duration.of(1, ChronoUnit.HOURS))
-                .operation(GroupOperation.SUM)
-                .build());
+                        Instant.parse("2020-01-01T00:09:30Z"),
+                        Instant.parse("2020-01-01T02:09:30Z")
+                ), AggregationConfiguration.builder()
+                        .thenGroup(GroupOperation.SUM, Duration.ofHours(1))
+                        .thenGroup(GroupOperation.SUM, Duration.ofHours(2))
+                        .build()
+        );
 
         assertThat(aggregation.getValue()).isEqualTo(BigDecimal.valueOf(480 * 2));
 
         // When grouped with a smaller interval, the calculation remains the same
         aggregation = gateway.getAggregatedEventCountMetric(resource, TimeInterval.between(
-                Instant.parse("2020-01-01T00:09:30Z"),
-                Instant.parse("2020-01-01T02:09:30Z")
-        ), GroupingConfiguration.builder()
-                .groupInterval(Duration.of(5, ChronoUnit.MINUTES))
-                .operation(GroupOperation.SUM)
-                .build());
+                        Instant.parse("2020-01-01T00:09:30Z"),
+                        Instant.parse("2020-01-01T02:09:30Z")
+                ), AggregationConfiguration.builder()
+                        .thenGroup(GroupOperation.SUM, Duration.ofHours(1))
+                        .thenGroup(GroupOperation.SUM, Duration.ofHours(2))
+                        .build()
+        );
 
         assertThat(aggregation.getValue()).isEqualTo(BigDecimal.valueOf(480 * 2));
     }

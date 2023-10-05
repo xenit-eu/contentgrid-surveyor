@@ -25,9 +25,9 @@ include 'surveyor-domain'
 include 'surveyor-drivers-web'
 include 'surveyor-drivers-schedule'
 
+include 'surveyor-infrastructure-config-spring'
 include 'surveyor-infrastructure-storage-inmemory'
 include 'surveyor-infrastructure-storage-data-jdbc'
-include 'surveyor-infrastructure-source-events-loki'
 include 'surveyor-infrastructure-source-metrics-prometheus'
 
 include 'surveyor-usecases'

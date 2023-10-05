@@ -1,18 +1,16 @@
 package com.contentgrid.surveyor.api.metrics;
 
-import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import lombok.Builder;
 import lombok.NonNull;
 
-public interface AggregateMetrics {
+public interface BillingMetrics {
 
-    Map<Resource, Metric> aggregateMetrics(AggregateMetricsCommand command);
+    Map<Resource, Metric> findMetricsForBilling(BillingMetricsCommand command);
 
     @Builder
-    record AggregateMetricsCommand(
+    record BillingMetricsCommand(
             @NonNull
             String system,
             @NonNull

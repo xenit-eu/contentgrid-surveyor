@@ -3,7 +3,8 @@ package com.contentgrid.surveyor.infrastructure.storage.memory;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.GroupingConfiguration.GroupOperation;
+import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.AggregationConfiguration.GroupOperation;
+import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.AggregationConfiguration.GroupingConfiguration;
 import com.contentgrid.surveyor.spi.storage.EventCountMetric;
 import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.Resource;
@@ -12,7 +13,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -34,22 +34,9 @@ public class MetricsGateway implements StoreEventCountMetricSpiPort,
     private final Map<ResourceDefinition, TimeInterval> lastApplied = new HashMap<>();
 
     @Override
-    public List<EventCountMetric> getAggregatedEventCountMetrics(Resource resource, TimeInterval interval,
-            Duration chunkDuration, GroupingConfiguration groupingConfiguration) {
-
-        return findEventCountMetrics(resource, interval, List.of(
-                GroupingConfiguration.builder()
-                        .groupInterval(chunkDuration)
-                        .operation(GroupOperation.SUM)
-                        .build(),
-                groupingConfiguration
-        ));
-    }
-
-    @Override
     public List<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
-            List<GroupingConfiguration> groupingConfigurations) {
-        return findEventCountMetricsRecursive(resource, interval, groupingConfigurations).toList();
+            AggregationConfiguration aggregationConfiguration) {
+        return findEventCountMetricsRecursive(resource, interval, aggregationConfiguration.getGroupings()).toList();
     }
 
     public Stream<EventCountMetric> findEventCountMetricsRecursive(Resource resource, TimeInterval interval,
@@ -57,11 +44,11 @@ public class MetricsGateway implements StoreEventCountMetricSpiPort,
         if (groupingConfigurations.isEmpty()) {
             return getMetricsInInterval(resource, interval);
         }
-        var firstGroup = groupingConfigurations.get(0);
-        var otherGroups = groupingConfigurations.subList(1, groupingConfigurations.size());
-        return interval.chunkedBy(firstGroup.groupInterval())
+        var lastGroup = groupingConfigurations.get(groupingConfigurations.size() - 1);
+        var otherGroups = groupingConfigurations.subList(0, groupingConfigurations.size() - 1);
+        return interval.chunkedBy(lastGroup.groupInterval())
                 .flatMap(groupInterval -> findEventCountMetricsRecursive(resource, groupInterval, otherGroups)
-                        .collect(groupingCollector(resource, firstGroup.operation()))
+                        .collect(groupingCollector(resource, lastGroup.operation()))
                         .stream()
                 );
     }

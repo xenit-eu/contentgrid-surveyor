@@ -1,13 +1,13 @@
 package com.contentgrid.surveyor.usecase.metrics;
 
-import com.contentgrid.surveyor.api.metrics.AggregateMetrics;
-import com.contentgrid.surveyor.api.metrics.FindMetrics;
+import com.contentgrid.surveyor.api.metrics.BillingMetrics;
+import com.contentgrid.surveyor.api.metrics.FindInsightMetrics;
 import com.contentgrid.surveyor.api.metrics.Metric;
 import com.contentgrid.surveyor.api.metrics.Resource;
 import com.contentgrid.surveyor.spi.TimeInterval;
+import com.contentgrid.surveyor.spi.config.FindResourceAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
 import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.GroupingConfiguration;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -18,14 +18,14 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class FindMetricsUseCase implements FindMetrics, AggregateMetrics {
+public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics {
 
-    private final Map<GroupingKey, GroupingConfiguration> groupingConfigurations;
+    private final FindResourceAggregationConfigurationSpiPort findResourceAggregationConfigurationSpiPort;
     private final AggregateEventCountMetricSpiPort eventCountMetricSpiPort;
     private final FindResourceDefinitionsSpiPort findResourceDefinitionsSpiPort;
 
     @Override
-    public Map<Resource, List<Metric>> findMetrics(FindMetricsCommand command) {
+    public Map<Resource, List<Metric>> findMetricsForInsights(FindInsightMetricsCommand command) {
         var definitions = findResourceDefinitionsSpiPort.findResourceDefinitions(command.system(),
                 command.resourceType());
 
@@ -36,16 +36,11 @@ public class FindMetricsUseCase implements FindMetrics, AggregateMetrics {
         return definitions.stream()
                 .map(definition -> new com.contentgrid.surveyor.spi.storage.Resource(definition, command.resourceId()))
                 .flatMap(resource -> {
-                    var groupingConfig = getGroupingConfig(resource);
                     return eventCountMetricSpiPort.findEventCountMetrics(
                             resource,
                             interval,
-                            List.of(
-                                    GroupingConfiguration.builder()
-                                            .groupInterval(step)
-                                            .operation(groupingConfig.operation())
-                                            .build()
-                            )
+                            findResourceAggregationConfigurationSpiPort.getInsightsAggregationConfiguration(
+                                    resource.getDefinition(), step)
                     ).stream();
                 })
                 .collect(
@@ -58,7 +53,7 @@ public class FindMetricsUseCase implements FindMetrics, AggregateMetrics {
     }
 
     @Override
-    public Map<Resource, Metric> aggregateMetrics(AggregateMetricsCommand command) {
+    public Map<Resource, Metric> findMetricsForBilling(BillingMetricsCommand command) {
         var definitions = findResourceDefinitionsSpiPort.findResourceDefinitions(command.system(),
                 command.resourceType());
 
@@ -67,7 +62,8 @@ public class FindMetricsUseCase implements FindMetrics, AggregateMetrics {
         return definitions.stream()
                 .map(definition -> new com.contentgrid.surveyor.spi.storage.Resource(definition, command.resourceId()))
                 .map(resource -> {
-                    var groupingConfig = getGroupingConfig(resource);
+                    var groupingConfig = findResourceAggregationConfigurationSpiPort.getBillingAggregationConfiguration(
+                            resource.getDefinition(), interval.getDuration());
                     return eventCountMetricSpiPort.getAggregatedEventCountMetric(resource, interval, groupingConfig);
                 })
                 .collect(Collectors.toMap(metric -> new Resource(metric.getResource().getDefinition().metricName()),
@@ -86,18 +82,5 @@ public class FindMetricsUseCase implements FindMetrics, AggregateMetrics {
             end = start.plus(1, ChronoUnit.DAYS);
         }
         return TimeInterval.between(start, end).alignedToMultipleOf(Duration.ofHours(1));
-    }
-
-    private GroupingConfiguration getGroupingConfig(com.contentgrid.surveyor.spi.storage.Resource resource) {
-        return groupingConfigurations.get(
-                new GroupingKey(resource.getDefinition().resourceType(),
-                        resource.getDefinition().metricName()));
-    }
-
-    public record GroupingKey(
-            String resourceType,
-            String metric
-    ) {
-
     }
 }

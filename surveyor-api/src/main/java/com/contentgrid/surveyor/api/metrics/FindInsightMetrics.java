@@ -7,12 +7,12 @@ import java.util.Map;
 import lombok.Builder;
 import lombok.NonNull;
 
-public interface FindMetrics {
+public interface FindInsightMetrics {
 
-    Map<Resource, List<Metric>> findMetrics(FindMetricsCommand command);
+    Map<Resource, List<Metric>> findMetricsForInsights(FindInsightMetricsCommand command);
 
     @Builder
-    record FindMetricsCommand(
+    record FindInsightMetricsCommand(
             @NonNull
             String system,
             @NonNull

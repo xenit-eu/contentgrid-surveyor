@@ -5,28 +5,34 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Singular;
 
 public interface AggregateEventCountMetricSpiPort {
 
     default EventCountMetric getAggregatedEventCountMetric(Resource resource, TimeInterval interval,
-            GroupingConfiguration groupingConfiguration) {
+            AggregationConfiguration aggregationConfiguration) {
         return Util.onlyValue(
-                getAggregatedEventCountMetrics(resource, interval, interval.getDuration(), groupingConfiguration),
+                findEventCountMetrics(resource, interval, aggregationConfiguration),
                 () -> new EventCountMetric(interval, resource, BigDecimal.ZERO)
         );
     }
 
-    List<EventCountMetric> getAggregatedEventCountMetrics(Resource resource, TimeInterval interval,
-            Duration chunkDuration, GroupingConfiguration groupingConfiguration);
-
     List<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
-            List<GroupingConfiguration> groupingConfigurations);
+            AggregationConfiguration aggregationConfiguration);
 
     @Builder
-    record GroupingConfiguration(
-            Duration groupInterval,
-            GroupOperation operation
-    ) {
+    class AggregationConfiguration {
+
+        @Singular
+        @NonNull
+        @Getter
+        private final List<GroupingConfiguration> groupings;
+
+        public boolean isEmpty() {
+            return groupings.isEmpty();
+        }
 
         public enum GroupOperation {
             AVERAGE,
@@ -34,5 +40,24 @@ public interface AggregateEventCountMetricSpiPort {
             MIN,
             SUM
         }
+
+        public static class AggregationConfigurationBuilder {
+
+            public AggregationConfigurationBuilder thenGroup(GroupOperation operation, Duration groupInterval) {
+                return grouping(new GroupingConfiguration(groupInterval, operation));
+            }
+        }
+
+        public record GroupingConfiguration(
+                @NonNull
+                Duration groupInterval,
+                @NonNull
+                GroupOperation operation
+        ) {
+
+        }
+
     }
+
+
 }
