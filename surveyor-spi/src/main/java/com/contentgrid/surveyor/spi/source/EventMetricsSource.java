@@ -11,17 +11,11 @@ public interface EventMetricsSource {
 
     Optional<ResourceDefinition> resourceDefinition(MetricCollectionConfig config);
 
-    Stream<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant referenceTime)
+    Stream<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant startedAt)
             throws CollectionFailedException;
 
     Stream<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, TimeInterval interval)
             throws CollectionFailedException;
-
-    default Stream<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, Instant startTime,
-            Instant endTime)
-            throws CollectionFailedException {
-        return collectMetricsForBackfilling(config, TimeInterval.between(startTime, endTime));
-    }
 
     @StandardException
     class CollectionFailedException extends Exception {

@@ -47,10 +47,15 @@ public class TimeInterval {
     }
 
     public TimeInterval alignedToMultipleOf(Duration duration) {
-        var timeDelta = Duration.between(startTime, endTime);
-        long multiple = timeDelta.dividedBy(duration);
-        var recalculatedEndTime = startTime.plus(duration.multipliedBy(multiple));
-        return new TimeInterval(startTime, recalculatedEndTime);
+        long multiple = getDuration().dividedBy(duration);
+        Duration newDuration = duration.multipliedBy(multiple);
+        // If the new duration is less than our new duration, add another one,
+        // we want the aligned interval to be *larger than* the current one
+        if (newDuration.compareTo(duration) < 0) {
+            newDuration = newDuration.plus(duration);
+        }
+
+        return TimeInterval.after(startTime, newDuration);
     }
 
     public Duration getDuration() {

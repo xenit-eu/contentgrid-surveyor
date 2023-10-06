@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'java-test-fixtures'
     id 'io.freefair.lombok'
 }
 dependencies {
@@ -14,5 +15,9 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-params'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.awaitility:awaitility'
+
+    testFixturesImplementation platform(project(':surveyor-dependencies'))
+    testFixturesApi 'org.testcontainers:testcontainers'
+    testFixturesImplementation 'org.awaitility:awaitility'
+    testFixturesImplementation 'org.springframework:spring-webflux'
 }

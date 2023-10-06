@@ -1,25 +1,22 @@
 package com.contentgrid.surveyor.infrastructure.source.prometheus;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
-import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse;
+import com.contentgrid.surveyor.infrastructure.source.prometheus.test.FakeMetrics;
+import com.contentgrid.surveyor.infrastructure.source.prometheus.test.FakeMetrics.MetricDefinition;
+import com.contentgrid.surveyor.infrastructure.source.prometheus.test.PrometheusContainer;
+import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource.CollectionFailedException;
 import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -37,60 +34,49 @@ class PrometheusEventMetricsSourceTest {
 
     @BeforeAll
     static void createFakeMetrics() throws IOException, InterruptedException {
-        var byteArray = new ByteArrayOutputStream();
-        PrintStream fakeMetrics = new PrintStream(byteArray);
+        var fakeMetrics = new FakeMetrics(FAKE_METRICS_START, FAKE_METRICS_INTERVAL);
 
-        var currentTimestamp = FAKE_METRICS_START;
-        while (FAKE_METRICS_END.isAfter(currentTimestamp)) {
+        var fixedMetricAbc = MetricDefinition.builder()
+                .name("fixed_metric_1")
+                .label("resource", "abc")
+                .label("other", "def")
+                .build();
+        var fixedMetricXyz = MetricDefinition.builder()
+                .name("fixed_metric_1")
+                .label("resource", "xyz")
+                .label("other", "def")
+                .build();
 
-            fakeMetrics.println(
-                    "fixed_metric_1{resource=\"abc\",other=\"def\"} 8 " + currentTimestamp.getEpochSecond());
-            fakeMetrics.println(
-                    "fixed_metric_1{resource=\"xyz\",other=\"def\"} 15.3 " + currentTimestamp.getEpochSecond());
-            fakeMetrics.println("growing_metric_1{resource=\"abc\"} " + calculateMetric(currentTimestamp,
-                    d -> d.toMinutes() / 60.0d) + " " + currentTimestamp.getEpochSecond());
-            fakeMetrics.println("growing_metric_1{resource=\"xyz\"} " + calculateMetric(currentTimestamp,
-                    d -> Math.max(0d, d.toMinutes() / 60.0d - d.toHoursPart() * d.toDaysPart())) + " "
-                    + currentTimestamp.getEpochSecond());
+        var growingMetricAbc = MetricDefinition.builder()
+                .name("growing_metric_1")
+                .label("resource", "abc")
+                .build();
 
-            currentTimestamp = currentTimestamp.plus(FAKE_METRICS_INTERVAL);
-        }
-        fakeMetrics.println("# EOF");
+        var growingMetricXyz = MetricDefinition.builder()
+                .name("growing_metric_1")
+                .label("resource", "xyz")
+                .build();
 
-        PROMETHEUS.copyFileToContainer(Transferable.of(byteArray.toByteArray()), "/tmp/metrics");
-        var result = PROMETHEUS.execInContainer("promtool", "tsdb", "create-blocks-from", "openmetrics",
-                "--max-block-duration=1d", "/tmp/metrics");
-        if (result.getExitCode() != 0) {
-            System.out.println(result.getStdout());
-            System.err.println(result.getStderr());
-        }
+        fakeMetrics.recordAllUntil(fixedMetricAbc, d -> BigDecimal.valueOf(8), FAKE_METRICS_END);
+        fakeMetrics.recordAllUntil(fixedMetricXyz, d -> BigDecimal.valueOf(15.3), FAKE_METRICS_END);
+        fakeMetrics.recordAllUntil(growingMetricAbc, c -> {
+                    var duration = c.durationSinceStart();
+                    return BigDecimal.valueOf(duration.toMinutes()).divide(BigDecimal.valueOf(10));
+                },
+                FAKE_METRICS_END);
+        fakeMetrics.recordAllUntil(growingMetricXyz, c -> {
+            var d = c.durationSinceStart();
+            return BigDecimal.valueOf(d.toMinutes())
+                    .divide(BigDecimal.valueOf(10)).subtract(
+                            BigDecimal.valueOf(d.toHoursPart()).multiply(BigDecimal.valueOf(d.toDaysPart()))
+                    ).max(BigDecimal.ZERO);
+        }, FAKE_METRICS_END);
 
-        await()
-                .atMost(1, TimeUnit.MINUTES)
-                .until(() -> {
-                    return WebClient.builder()
-                            .baseUrl(PROMETHEUS.getApiUrl().resolve("api/v1/query").toString())
-                            .build()
-                            .get()
-                            .uri(builder -> builder.queryParam("query", "fixed_metric_1")
-                                    .queryParam("time", FAKE_METRICS_END.toString())
-                                    .build()
-                            )
-                            .retrieve()
-                            .toEntity(PrometheusResponse.class)
-                            .block()
-                            .getBody();
-                }, body -> !body.data().getResult().isEmpty());
-
-    }
-
-    private static double calculateMetric(Instant currentTimestamp, Function<Duration, Double> calculation) {
-        var duration = Duration.between(FAKE_METRICS_START, currentTimestamp);
-        return calculation.apply(duration);
+        fakeMetrics.injectInto(PROMETHEUS);
     }
 
     @Test
-    void queryValueAt() throws CollectionFailedException {
+    void queryValueAt() {
         var api = PrometheusApiConfig.builder()
                 .url(PROMETHEUS.getApiUrl())
                 .headers(Map.of())

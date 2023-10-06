@@ -56,14 +56,17 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
     }
 
     @Override
-    public Stream<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant referenceTime) {
+    public Stream<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant startedAt) {
+        // Prometheus range queries are covering the period *before* the time they are queried
+        // So, a range query [1h] at 12:00 covers data from 11:00 -> 12:00
+        var endTime = startedAt.plus(config.interval());
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/api/v1/query")
                         .queryParam("query", "{query}")
                         .queryParam("time", "{time}")
                         .build(Map.of(
                                 "query", config.query(),
-                                "time", referenceTime.toString()
+                                "time", endTime.toString()
                         ))
                 )
                 .retrieve()
@@ -121,7 +124,7 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
                 new ResourceDefinition(this.systemName, config.resourceType(), config.metric()),
                 Objects.requireNonNull(prometheusVectorResult.metric().get(config.resourceIdLabel()),
                         () -> "Metric is missing label %s".formatted(config.resourceIdLabel())),
-                TimeInterval.after(prometheusVectorResult.value().timestamp(), config.interval()),
+                TimeInterval.before(prometheusVectorResult.value().timestamp(), config.interval()),
                 prometheusVectorResult.value().value()
         );
     }
