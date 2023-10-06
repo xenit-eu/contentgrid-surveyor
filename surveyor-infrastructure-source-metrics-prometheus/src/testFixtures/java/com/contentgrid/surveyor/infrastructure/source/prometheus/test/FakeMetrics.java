@@ -89,14 +89,14 @@ public class FakeMetrics {
         @Override
         public Duration durationSinceStart() {
             return previous()
-                    .map(m -> Duration.between(startTime, m.timestamp()))
+                    .map(m -> Duration.between(startTime, m.timestamp()).plus(sampleInterval))
                     .orElseGet(() -> Duration.between(startTime, recordingStartTime));
         }
 
         @Override
         public Duration durationSinceRecording() {
             return previous()
-                    .map(m -> Duration.between(recordingStartTime, m.timestamp))
+                    .map(m -> Duration.between(recordingStartTime, m.timestamp).plus(sampleInterval))
                     .orElseGet(() -> Duration.ZERO);
         }
 

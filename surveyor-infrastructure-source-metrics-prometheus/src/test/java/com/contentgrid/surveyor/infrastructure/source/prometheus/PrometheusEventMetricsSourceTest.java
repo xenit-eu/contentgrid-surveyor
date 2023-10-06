@@ -5,8 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.test.FakeMetrics;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.test.FakeMetrics.MetricDefinition;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.test.PrometheusContainer;
-import com.contentgrid.surveyor.spi.TimeInterval;
-import com.contentgrid.surveyor.spi.source.EventMetricsSource.CollectionFailedException;
 import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -31,7 +29,7 @@ class PrometheusEventMetricsSourceTest {
     private static final Instant FAKE_METRICS_END = Instant.now().truncatedTo(ChronoUnit.DAYS)
             .minus(1, ChronoUnit.DAYS);
     private static final Instant FAKE_METRICS_START = FAKE_METRICS_END.minus(Duration.ofDays(80));
-    private static final Duration FAKE_METRICS_INTERVAL = Duration.ofSeconds(31);
+    private static final Duration FAKE_METRICS_INTERVAL = Duration.ofSeconds(30);
 
     @BeforeAll
     static void createFakeMetrics() throws IOException, InterruptedException {
