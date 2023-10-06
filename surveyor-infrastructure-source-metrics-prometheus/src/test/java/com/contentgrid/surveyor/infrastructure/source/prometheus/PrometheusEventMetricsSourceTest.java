@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.Objects;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -107,7 +108,25 @@ class PrometheusEventMetricsSourceTest {
                     assertThat(resourceXyz.value()).isEqualTo(BigDecimal.valueOf(15.3));
                 }
         );
-    }
 
+        var dynamicConfig = MetricCollectionConfig.builder()
+                .type("prometheus")
+                .resourceType("test")
+                .metric("test")
+                .query("increase(growing_metric_1[1h])")
+                .interval(Duration.ofHours(1))
+                .resourceIdLabel("resource")
+                .build();
+
+        assertThat(source.collectMetrics(dynamicConfig, FAKE_METRICS_START))
+                .filteredOn(m -> Objects.equals(m.resourceId(), "abc"))
+                .singleElement()
+                .satisfies(metric -> {
+                    assertThat(metric.timeInterval().getStartTime()).isEqualTo(FAKE_METRICS_START);
+                    assertThat(metric.timeInterval().getDuration()).isEqualTo(Duration.ofHours(1));
+                    // value is <minutes>/10 -> increases with 6 per hour
+                    assertThat(metric.value()).isEqualTo(BigDecimal.valueOf(6));
+                });
+    }
 
 }
