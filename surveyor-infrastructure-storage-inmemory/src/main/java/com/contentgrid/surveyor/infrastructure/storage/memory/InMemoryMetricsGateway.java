@@ -3,16 +3,17 @@ package com.contentgrid.surveyor.infrastructure.storage.memory;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.AggregationConfiguration.GroupOperation;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.AggregationConfiguration.GroupingConfiguration;
 import com.contentgrid.surveyor.spi.storage.EventCountMetric;
 import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.Resource;
 import com.contentgrid.surveyor.spi.storage.StoreEventCountMetricSpiPort;
+import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
+import com.contentgrid.surveyor.spi.storage.aggregation.AggregationOperation;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -26,7 +27,7 @@ import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 
-public class MetricsGateway implements StoreEventCountMetricSpiPort,
+public class InMemoryMetricsGateway implements StoreEventCountMetricSpiPort,
         AggregateEventCountMetricSpiPort,
         LastEventCountMetricSpiPort {
 
@@ -36,29 +37,63 @@ public class MetricsGateway implements StoreEventCountMetricSpiPort,
     @Override
     public List<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
-        return findEventCountMetricsRecursive(resource, interval, aggregationConfiguration.getGroupings()).toList();
+        var metrics = getMetricsInInterval(resource, interval);
+        return bucketEventCountMetricsRecursive(metrics, resource, interval, aggregationConfiguration).toList();
     }
 
-    public Stream<EventCountMetric> findEventCountMetricsRecursive(Resource resource, TimeInterval interval,
-            List<GroupingConfiguration> groupingConfigurations) {
-        if (groupingConfigurations.isEmpty()) {
-            return getMetricsInInterval(resource, interval);
+    public Stream<EventCountMetric> bucketEventCountMetricsRecursive(
+            Stream<EventCountMetric> metrics,
+            Resource resource,
+            TimeInterval timeInterval,
+            AggregationConfiguration aggregationConfiguration
+    ) {
+        if (aggregationConfiguration.isEmpty()) {
+            return metrics;
         }
-        var lastGroup = groupingConfigurations.get(groupingConfigurations.size() - 1);
-        var otherGroups = groupingConfigurations.subList(0, groupingConfigurations.size() - 1);
-        return interval.chunkedBy(lastGroup.groupInterval())
-                .flatMap(groupInterval -> findEventCountMetricsRecursive(resource, groupInterval, otherGroups)
-                        .collect(groupingCollector(resource, lastGroup.operation()))
-                        .stream()
-                );
+        var split = aggregationConfiguration.splitLeft();
+        var firstOp = split.operation();
+
+        var aggregatedMetrics = firstOp.perform(bucketingOperation -> {
+                    return metrics
+                            .collect(Collectors.groupingBy(
+                                    metric -> bucketingKey(bucketingOperation.bucket(),
+                                            metric.getMeasureInterval().getEndTime(), timeInterval.getStartTime()),
+                                    groupingCollector(resource, bucketingOperation.operation())
+                            ))
+                            .values()
+                            .stream()
+                            .flatMap(Optional::stream);
+                },
+                finishingOperation -> {
+                    return metrics.collect(groupingCollector(resource, finishingOperation.operation())).stream();
+                }
+        );
+
+        return bucketEventCountMetricsRecursive(
+                aggregatedMetrics,
+                resource,
+                timeInterval,
+                split
+        );
+    }
+
+    private long bucketingKey(Duration bucket, Instant time, Instant reference) {
+        var fromReference = Duration.between(reference, time);
+
+        var bucketKey = fromReference.dividedBy(bucket);
+        // division is not exactly right, as we want the last item to still be part of the bucket
+        if (Objects.equals(fromReference, bucket.multipliedBy(bucketKey))) {
+            bucketKey -= 1;
+        }
+        return bucketKey;
     }
 
     private Collector<EventCountMetric, ?, Optional<EventCountMetric>> groupingCollector(Resource resource,
-            GroupOperation groupOperation) {
+            AggregationOperation aggregationOperation) {
         return Collectors.teeing(
                 Collectors.mapping(EventCountMetric::getMeasureInterval,
-                        Collectors.reducing(MetricsGateway::merge)),
-                Collectors.mapping(EventCountMetric::getValue, collectorFor(groupOperation)),
+                        Collectors.reducing(InMemoryMetricsGateway::merge)),
+                Collectors.mapping(EventCountMetric::getValue, collectorFor(aggregationOperation)),
                 (maybeMergedInterval, maybeValue) -> maybeMergedInterval.flatMap(
                         mergedInterval -> maybeValue.map(
                                 value -> new EventCountMetric(mergedInterval, resource,
@@ -70,14 +105,15 @@ public class MetricsGateway implements StoreEventCountMetricSpiPort,
         return List.copyOf(eventCountMetrics.getOrDefault(resource, List.of())).stream()
                 .filter(m -> Objects.equals(m.getResource(), resource))
                 .filter(m -> {
-                    var contains = groupInterval.contains(m.getMeasureInterval());
-
-                    return contains.isContained() || (contains.isPartiallyBefore()
-                            && !contains.isPartiallyAfter());
+                    var endTime = m.getMeasureInterval().getEndTime();
+                    return groupInterval.getStartTime().isBefore(endTime) && (
+                            groupInterval.getEndTime().isAfter(endTime) ||
+                                    groupInterval.getEndTime().equals(endTime)
+                    );
                 });
     }
 
-    private Collector<BigDecimal, ?, Optional<BigDecimal>> collectorFor(GroupOperation operation) {
+    private Collector<BigDecimal, ?, Optional<BigDecimal>> collectorFor(AggregationOperation operation) {
         return switch (operation) {
             case AVERAGE -> Collector.of(
                     BigDecimalAverageAccumulator::new,

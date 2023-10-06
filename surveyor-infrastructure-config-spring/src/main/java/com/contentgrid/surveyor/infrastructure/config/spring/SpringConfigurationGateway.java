@@ -4,7 +4,7 @@ import com.contentgrid.surveyor.infrastructure.config.spring.properties.Surveyor
 import com.contentgrid.surveyor.infrastructure.config.spring.properties.SurveyorMetricProperties.SurveyorMetricAggregrationProperties;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.config.FindResourceAggregationConfigurationSpiPort;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.AggregationConfiguration;
+import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -35,14 +35,12 @@ public class SpringConfigurationGateway implements FindResourceAggregationConfig
 
         for (SurveyorMetricAggregrationProperties config : configs) {
             if (config.period() == null) {
-                builder.thenGroup(config.operation(), aggregationSize);
+                return builder.finallyAggregate(config.operation());
             } else if (config.period().compareTo(aggregationSize) <= 0) {
-                builder.thenGroup(config.operation(), config.period());
-            } else {
-                break;
+                builder = builder.thenBucket(config.period(), config.operation());
             }
         }
-        return builder.build();
+        throw new IllegalStateException("Configuration is missing a final aggregation operation");
     }
 
     private SurveyorMetricProperties findApplicableProperty(ResourceDefinition resourceDefinition) {

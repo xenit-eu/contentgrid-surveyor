@@ -1,0 +1,16 @@
+plugins {
+    id 'java-library'
+    id 'java-test-fixtures'
+    id 'io.freefair.lombok'
+}
+
+
+dependencies {
+    testFixturesImplementation platform(project(':surveyor-dependencies'))
+
+    testFixturesApi project(':surveyor-spi')
+
+    testFixturesImplementation 'org.junit.jupiter:junit-jupiter-engine'
+    testFixturesImplementation 'org.junit.jupiter:junit-jupiter-params'
+    testFixturesImplementation 'org.assertj:assertj-core'
+}

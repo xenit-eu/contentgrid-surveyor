@@ -23,17 +23,11 @@ import java.util.Optional;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @EnableConfigurationProperties(SurveyorSourceProperties.class)
-@Import(SurveyorSpringConfiguration.class)
 @Configuration(proxyBeanMethods = false)
 public class SurveyorConfiguration {
-    @Bean
-    ScheduledPullMetricsComponent scheduledPullMetricsComponent(PullMetrics pullMetrics) {
-        return new ScheduledPullMetricsComponent(pullMetrics);
-    }
 
     @Bean
     List<MetricCollectionConfig> metricCollectionConfigList(SurveyorProperties surveyorProperties) {

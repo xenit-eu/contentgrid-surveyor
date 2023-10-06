@@ -1,6 +1,6 @@
 package com.contentgrid.surveyor.infrastructure.config.spring.properties;
 
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort.AggregationConfiguration.GroupOperation;
+import com.contentgrid.surveyor.spi.storage.aggregation.AggregationOperation;
 import java.time.Duration;
 import java.util.List;
 
@@ -23,7 +23,7 @@ public record SurveyorMetricProperties(
 
     public record SurveyorMetricAggregrationProperties(
             Duration period,
-            GroupOperation operation
+            AggregationOperation operation
     ) {
 
     }

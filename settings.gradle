@@ -28,6 +28,7 @@ include 'surveyor-drivers-schedule'
 include 'surveyor-infrastructure-config-spring'
 include 'surveyor-infrastructure-storage-inmemory'
 include 'surveyor-infrastructure-storage-data-jdbc'
+include 'surveyor-infrastructure-storage-tests'
 include 'surveyor-infrastructure-source-metrics-prometheus'
 
 include 'surveyor-usecases'
