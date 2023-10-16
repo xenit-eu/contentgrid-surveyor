@@ -1,5 +1,6 @@
 package com.contentgrid.surveyor.spi.storage;
 
+import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import java.math.BigDecimal;
@@ -16,6 +17,9 @@ public interface AggregateEventCountMetricSpiPort {
     }
 
     List<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
+            AggregationConfiguration aggregationConfiguration);
+
+    List<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition, TimeInterval interval,
             AggregationConfiguration aggregationConfiguration);
 
 

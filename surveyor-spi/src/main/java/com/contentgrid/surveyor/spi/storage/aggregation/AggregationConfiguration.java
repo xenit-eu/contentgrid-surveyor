@@ -20,5 +20,7 @@ public interface AggregationConfiguration {
         AggregationConfigurationBuilder thenBucket(Duration bucketSize, AggregationOperation operation);
 
         AggregationConfiguration finallyAggregate(AggregationOperation operation);
+
+        AggregationConfiguration finallyDontAggregate();
     }
 }

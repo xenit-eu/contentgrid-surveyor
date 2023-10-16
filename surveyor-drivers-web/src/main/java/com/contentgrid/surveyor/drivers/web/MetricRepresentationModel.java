@@ -13,7 +13,7 @@ import org.springframework.hateoas.server.core.Relation;
 @EqualsAndHashCode(callSuper = true)
 public class MetricRepresentationModel extends RepresentationModel<MetricRepresentationModel> {
 
-    String metric;
+    ResourceRepresentationModel resource;
     List<MetricData> data;
 
     public record MetricData(

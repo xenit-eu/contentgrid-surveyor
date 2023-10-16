@@ -41,6 +41,26 @@ public class InMemoryMetricsGateway implements StoreEventCountMetricSpiPort,
         return bucketEventCountMetricsRecursive(metrics, resource, interval, aggregationConfiguration).toList();
     }
 
+    @Override
+    public List<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition, TimeInterval interval,
+            AggregationConfiguration aggregationConfiguration) {
+
+        var resources = eventCountMetrics.keySet().stream()
+                .filter(resource -> Objects.equals(resource.getDefinition(), resourceDefinition))
+                .toList();
+
+        return resources.stream()
+                .flatMap(
+                        resource -> bucketEventCountMetricsRecursive(
+                                getMetricsInInterval(resource, interval),
+                                resource,
+                                interval,
+                                aggregationConfiguration
+                        )
+                )
+                .toList();
+    }
+
     public Stream<EventCountMetric> bucketEventCountMetricsRecursive(
             Stream<EventCountMetric> metrics,
             Resource resource,

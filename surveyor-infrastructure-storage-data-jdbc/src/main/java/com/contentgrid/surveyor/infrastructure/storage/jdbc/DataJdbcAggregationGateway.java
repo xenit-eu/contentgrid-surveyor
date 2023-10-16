@@ -1,6 +1,7 @@
 package com.contentgrid.surveyor.infrastructure.storage.jdbc;
 
 
+import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.EventCountMetric;
@@ -13,9 +14,11 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiPort {
@@ -28,7 +31,11 @@ public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiP
     public List<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
         var resourceEntity = resourceRepository.upsert(ResourceEntity.from(resource));
-        var query = buildQuery(aggregationConfiguration);
+        var query = buildQuery(aggregationConfiguration, """
+                select * from metric_events
+                    where resource_id = :resourceId
+                    and end_time > :startTime and end_time <= :endTime
+                """);
 
         return jdbcTemplate.query(
                 query,
@@ -48,13 +55,57 @@ public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiP
         );
     }
 
-    private String buildQuery(AggregationConfiguration aggregationConfiguration) {
+    @Override
+    @Transactional
+    public List<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition, TimeInterval interval,
+            AggregationConfiguration aggregationConfiguration) {
+        Map<Long, Resource> resources;
+        try (var resourceStream = resourceRepository.findAllBySourceSystemAndResourceTypeAndMetricName(
+                resourceDefinition.sourceSystem(),
+                resourceDefinition.resourceType(),
+                resourceDefinition.metricName()
+        )) {
+            resources = resourceStream.collect(Collectors.toUnmodifiableMap(
+                    ResourceEntity::getId,
+                    entity -> new Resource(
+                            new ResourceDefinition(
+                                    entity.getSourceSystem(),
+                                    entity.getResourceType(),
+                                    entity.getMetricName()
+                            ),
+                            entity.getResourceId()
+                    )
+            ));
+        }
+
+        var query = buildQuery(aggregationConfiguration, """
+                select * from metric_events
+                    where resource_id IN(:resourceIds)
+                    and end_time > :startTime and end_time <= :endTime
+                """);
+
+        return jdbcTemplate.query(
+                query,
+                Map.of(
+                        "resourceIds", resources.keySet(),
+                        "startTime", conversionService.convert(interval.getStartTime(), Timestamp.class),
+                        "endTime", conversionService.convert(interval.getEndTime(), Timestamp.class)
+                ),
+                (rs, rowNum) -> new EventCountMetric(
+                        TimeInterval.between(
+                                conversionService.convert(rs.getTimestamp("start_time"), Instant.class),
+                                conversionService.convert(rs.getTimestamp("end_time"), Instant.class)
+                        ),
+                        resources.get(rs.getLong("resource_id")),
+                        rs.getBigDecimal("value")
+                )
+        );
+
+    }
+
+    private String buildQuery(AggregationConfiguration aggregationConfiguration, String baseCase) {
         if (aggregationConfiguration.isEmpty()) {
-            return """
-                    select * from metric_events
-                        where resource_id = :resourceId
-                        and end_time > :startTime and end_time <= :endTime
-                    """;
+            return baseCase;
         }
         var split = aggregationConfiguration.splitRight();
         var operation = split.operation();
@@ -91,7 +142,7 @@ public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiP
                 }
         );
 
-        return query.formatted(buildQuery(split));
+        return query.formatted(buildQuery(split, baseCase));
     }
 
     private String toPostgresInterval(Duration groupInterval) {

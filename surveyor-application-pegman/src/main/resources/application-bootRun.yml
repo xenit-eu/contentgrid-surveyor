@@ -1,0 +1,12 @@
+server:
+  port: 9088
+  error:
+    include-message: always
+
+management:
+  server:
+    port: 9188
+  endpoints:
+    web:
+      exposure:
+        include: "*"

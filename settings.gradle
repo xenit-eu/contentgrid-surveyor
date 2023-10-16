@@ -14,7 +14,8 @@ dependencyResolutionManagement {
 
 rootProject.name = 'contentgrid-surveyor'
 
-include 'surveyor-application'
+include 'surveyor-application-surveyor'
+include 'surveyor-application-pegman'
 include 'surveyor-dependencies'
 
 include 'surveyor-api'
@@ -27,8 +28,10 @@ include 'surveyor-drivers-schedule'
 
 include 'surveyor-infrastructure-config-spring'
 include 'surveyor-infrastructure-storage-inmemory'
+include 'surveyor-infrastructure-storage-pullthrough'
 include 'surveyor-infrastructure-storage-data-jdbc'
 include 'surveyor-infrastructure-storage-tests'
 include 'surveyor-infrastructure-source-metrics-prometheus'
+include 'surveyor-infrastructure-source-metrics-pegman'
 
 include 'surveyor-usecases'

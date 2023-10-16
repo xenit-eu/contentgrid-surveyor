@@ -1,0 +1,84 @@
+surveyor:
+  systems:
+    pegman:
+      - name: eu-west-1.contentgrid.cloud
+        type: pegman
+        url: 'http://localhost:9088/'
+  metrics:
+    - type: pegman
+      resource-type: storage
+      metric: stored_bytes
+      query:
+        query: 'storage:stored_bytes'
+        interval: PT15M
+      insights:
+        - period: PT1H
+          operation: AVERAGE
+        - operation: AVERAGE
+      billing:
+        - period: PT1H
+          operation: AVERAGE
+        - operation: SUM
+    - type: pegman
+      resource-type: storage
+      metric: objects_count
+      query:
+        query: 'storage:objects_count'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: MAX
+        - operation: MAX
+      billing:
+        - period: PT1H
+          operation: MAX
+        - operation: MAX
+    - type: pegman
+      resource-type: storage
+      metric: egress_bytes
+      query:
+        query: 'storage:egress_bytes'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+      billing:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+    - type: pegman
+      resource-type: storage
+      metric: ingress_bytes
+      query:
+        query: 'storage:ingress_bytes'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+      billing:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+#    - type: loki
+#      resource-type: storage
+#      metric: read_count
+#      query:
+#        query: 'count_over_time({resource_type="object_storage_bucket"} | json method="http_method" | method = `GET` [1h])'
+#        interval: PT1H
+#        resource-id-label: resource_id
+#      aggregation:
+#        period: PT1H
+#        operation: SUM
+#    - type: prometheus
+#      resource-type: db
+#      metric: connections
+#      query:
+#        query: 'sum by(datname) (max_over_time(rdb_instance_postgresql_pg_stat_database_numbackends{datname!=""}[1h]))'
+#        interval: PT1H
+#        resource-id-label: datname
+#      aggregation:
+#        period: PT1H
+#        operation: MAX
+

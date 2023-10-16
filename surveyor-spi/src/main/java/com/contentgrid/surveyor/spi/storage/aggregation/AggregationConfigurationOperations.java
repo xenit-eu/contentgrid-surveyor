@@ -50,6 +50,11 @@ public class AggregationConfigurationOperations implements AggregationConfigurat
         return withAppendedOperation(new FinishingOperation(operation));
     }
 
+    @Override
+    public AggregationConfiguration finallyDontAggregate() {
+        return this;
+    }
+
     private AggregationConfigurationOperations withAppendedOperation(Operation operation) {
         var ops = new ArrayList<>(operations);
         ops.add(operation);

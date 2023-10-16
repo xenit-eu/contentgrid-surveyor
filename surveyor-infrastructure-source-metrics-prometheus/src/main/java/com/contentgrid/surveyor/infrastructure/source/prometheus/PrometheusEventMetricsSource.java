@@ -29,7 +29,6 @@ import reactor.core.publisher.Flux;
 public class PrometheusEventMetricsSource implements EventMetricsSource {
 
     private final WebClient webClient;
-    private final PrometheusApiConfig config;
     @ToString.Include
     private final String systemName;
     @ToString.Include
@@ -37,7 +36,7 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
 
     public PrometheusEventMetricsSource(WebClient.Builder clientBuilder, PrometheusApiConfig config, String systemName,
             String type) {
-        this(configureClient(clientBuilder, config), config, systemName, type);
+        this(configureClient(clientBuilder, config), systemName, type);
     }
 
     private static WebClient configureClient(WebClient.Builder clientBuilder, Consumer<Builder> configurer) {

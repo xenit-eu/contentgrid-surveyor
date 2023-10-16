@@ -12,7 +12,7 @@ import org.springframework.hateoas.server.core.Relation;
 @EqualsAndHashCode(callSuper = true)
 public class AggregateRepresentationModel extends RepresentationModel<AggregateRepresentationModel> {
 
-    String metric;
+    ResourceRepresentationModel resource;
     Instant startTime;
     Instant endTime;
     BigDecimal value;

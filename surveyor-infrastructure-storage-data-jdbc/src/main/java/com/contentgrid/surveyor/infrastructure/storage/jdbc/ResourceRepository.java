@@ -1,11 +1,11 @@
 package com.contentgrid.surveyor.infrastructure.storage.jdbc;
 
+import java.util.stream.Stream;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.QueryByExampleExecutor;
 
-public interface ResourceRepository extends CrudRepository<ResourceRepository, Long>,
-        QueryByExampleExecutor<ResourceRepository> {
+public interface ResourceRepository extends CrudRepository<ResourceRepository, Long> {
 
     @Query("""
             insert into resource(source_system, resource_type, resource_id, metric_name)
@@ -14,5 +14,11 @@ public interface ResourceRepository extends CrudRepository<ResourceRepository, L
             returning id, source_system, resource_type, resource_id, metric_name
             """)
     ResourceEntity upsert(ResourceEntity resource);
+
+    Stream<ResourceEntity> findAllBySourceSystemAndResourceTypeAndMetricName(
+            String sourceSystem,
+            String resourceType,
+            String metricName
+    );
 
 }
