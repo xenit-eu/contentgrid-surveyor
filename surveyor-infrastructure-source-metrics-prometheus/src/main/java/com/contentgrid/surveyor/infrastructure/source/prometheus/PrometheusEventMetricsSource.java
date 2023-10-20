@@ -1,15 +1,22 @@
 package com.contentgrid.surveyor.infrastructure.source.prometheus;
 
+import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusMatrixResult;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse.PrometheusMatrixData;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse.PrometheusVectorData;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse.Status;
+import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResult;
+import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResultAssembler;
+import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResultAssembler.DataAssemblyResult;
+import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResultAssembler.ErrorAssemblyResult;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusVectorResult;
+import com.contentgrid.surveyor.jackson.streaming.parser.JsonStreamParser;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.source.CollectedMetric;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
 import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
@@ -29,14 +36,16 @@ import reactor.core.publisher.Flux;
 public class PrometheusEventMetricsSource implements EventMetricsSource {
 
     private final WebClient webClient;
+    private final ObjectMapper objectMapper;
     @ToString.Include
     private final String systemName;
     @ToString.Include
     private final String type;
 
-    public PrometheusEventMetricsSource(WebClient.Builder clientBuilder, PrometheusApiConfig config, String systemName,
+    public PrometheusEventMetricsSource(WebClient.Builder clientBuilder, ObjectMapper objectMapper,
+            PrometheusApiConfig config, String systemName,
             String type) {
-        this(configureClient(clientBuilder, config), systemName, type);
+        this(configureClient(clientBuilder, config), objectMapper, systemName, type);
     }
 
     private static WebClient configureClient(WebClient.Builder clientBuilder, Consumer<Builder> configurer) {
@@ -68,9 +77,12 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
                                 "time", endTime.toString()
                         ))
                 )
-                .retrieve()
-                .bodyToMono(PrometheusResponse.class)
-                .flatMapMany(response -> this.toMetrics(config, response))
+                .exchangeToFlux(response -> {
+                    return response.body((httpResponse, context) -> JsonStreamParser.parse(httpResponse.getBody(),
+                            new PrometheusResultAssembler<>(objectMapper, PrometheusVectorResult.class),
+                            objectMapper));
+                })
+                .flatMap(assembly -> this.handleAssembly(config, assembly))
                 .toStream();
     }
 
@@ -97,30 +109,39 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
                                 "step", config.interval().getSeconds()
                         ))
                 )
-                .retrieve()
-                .bodyToMono(PrometheusResponse.class)
-                .flatMapMany(response -> this.toMetrics(config, response))
+                .exchangeToFlux(response -> {
+                    return response.body((httpResponse, context) -> JsonStreamParser.parse(httpResponse.getBody(),
+                            new PrometheusResultAssembler<>(objectMapper, PrometheusMatrixResult.class),
+                            objectMapper));
+                })
+                .flatMap(assembly -> this.handleAssembly(config, assembly))
                 .filter(metric -> recalculatedInterval.contains(metric.timeInterval()).isContained())
                 .toStream();
     }
 
-    private Flux<CollectedMetric> toMetrics(MetricCollectionConfig config, PrometheusResponse response) {
-        if (response.status() == Status.ERROR) {
+    private Flux<CollectedMetric> handleAssembly(MetricCollectionConfig config,
+            PrometheusResultAssembler.AssemblyResult<?> result) {
+        if (result instanceof PrometheusResultAssembler<?>.ErrorAssemblyResult error) {
             return Flux.error(new CollectionFailedException(
-                    "Failed to query '%s': %s".formatted(config.query(), response.error())));
+                    "Failed to query '%s': %s".formatted(config.query(), error.getError())));
+        } else if (result instanceof PrometheusResultAssembler<?>.WarningsAssemblyResult warnings) {
+            log.warn("Warnings for query '{}': {}", config.query(), warnings.getWarnings());
+            return Flux.empty();
+        } else if (result instanceof PrometheusResultAssembler<?>.DataAssemblyResult data) {
+            return toMetrics(config, data.getData());
+        } else {
+            return Flux.error(new CollectionFailedException("Unknown type of assembly result"));
         }
-        if (response.warnings() != null && !response.warnings().isEmpty()) {
-            log.warn("Warnings for query '{}': {}", config.query(), response.warnings());
-        }
-        if (response.data() instanceof PrometheusVectorData vector) {
-            return Flux.fromIterable(vector.getResult())
+    }
+
+    private Flux<CollectedMetric> toMetrics(MetricCollectionConfig config, PrometheusResult data) {
+        if (data instanceof PrometheusVectorResult vector) {
+            return Flux.just(this.createMetric(config, vector));
+        } else if (data instanceof PrometheusMatrixResult matrix) {
+            return Flux.fromStream(matrix.asVectors())
                     .map(result -> this.createMetric(config, result));
-        } else if (response.data() instanceof PrometheusMatrixData matrix) {
-            return Flux.fromIterable(matrix.getResult())
-                    .flatMap(result -> Flux.fromStream(result.asVectors()))
-                    .map(result -> this.createMetric(config, result));
         }
-        return Flux.error(new CollectionFailedException("Response data is not instant vector"));
+        return Flux.error(new CollectionFailedException("Response data is not vector or matrix"));
     }
 
     private CollectedMetric createMetric(MetricCollectionConfig config, PrometheusVectorResult prometheusVectorResult) {

@@ -6,6 +6,7 @@ import com.contentgrid.surveyor.infrastructure.source.prometheus.test.FakeMetric
 import com.contentgrid.surveyor.infrastructure.source.prometheus.test.FakeMetrics.MetricDefinition;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.test.PrometheusContainer;
 import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -25,6 +26,8 @@ class PrometheusEventMetricsSourceTest {
     @Container
     private static final PrometheusContainer PROMETHEUS = new PrometheusContainer()
             .withCommand("--storage.tsdb.retention.time=1y", "--config.file=/etc/prometheus/prometheus.yml");
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final Instant FAKE_METRICS_END = Instant.now().truncatedTo(ChronoUnit.DAYS)
             .minus(1, ChronoUnit.DAYS);
@@ -88,7 +91,8 @@ class PrometheusEventMetricsSourceTest {
                 .interval(Duration.ofHours(1))
                 .resourceIdLabel("resource")
                 .build();
-        var source = new PrometheusEventMetricsSource(WebClient.builder(), api, "prometheus-test", config.type());
+        var source = new PrometheusEventMetricsSource(WebClient.builder(), objectMapper, api, "prometheus-test",
+                config.type());
 
         assertThat(source.collectMetrics(config, FAKE_METRICS_START)).satisfiesExactlyInAnyOrder(
                 resourceAbc -> {

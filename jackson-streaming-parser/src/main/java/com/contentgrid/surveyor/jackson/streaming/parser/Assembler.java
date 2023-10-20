@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.function.Function;
 import reactor.core.publisher.Flux;
 
 @FunctionalInterface
@@ -19,9 +20,18 @@ public interface Assembler<T> {
 
         Flux<T> consume(JsonParser parser) throws IOException;
 
+        default <U> TokenAssembler<U> andThen(Function<Flux<T>, Flux<U>> mapper) {
+            return parser -> mapper.apply(this.consume(parser));
+        }
+
+        default <U> TokenAssembler<U> map(Function<? super T, ? extends U> mapper) {
+            return andThen(flux -> flux.map(mapper));
+        }
+
         static <T> TokenAssembler<T> fromParser(TokenBufferParser<T> parser) {
             return new TokenBufferParserAssembler<>(parser);
         }
+
 
     }
 
