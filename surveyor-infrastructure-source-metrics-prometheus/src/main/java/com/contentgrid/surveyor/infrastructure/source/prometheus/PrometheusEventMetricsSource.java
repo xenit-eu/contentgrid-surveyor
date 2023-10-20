@@ -78,6 +78,11 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
     public Stream<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, TimeInterval interval)
             throws CollectionFailedException {
         var recalculatedInterval = interval.alignedToMultipleOf(config.interval());
+        // Prometheus range queries are covering the period *before* the time they are queried
+        // So, a range query [1h] at 12:00 covers data from 11:00 -> 12:00
+        // The query interval needs to be adjusted, so when the requested interval is [11:00, 12:00),
+        // the data we need to query from prometheus is [12:00, 13:00) (shifted by one config.interval())
+        var queryInterval = recalculatedInterval.shiftedBy(config.interval());
 
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/api/v1/query_range")
@@ -87,8 +92,8 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
                         .queryParam("step", "{step}")
                         .build(Map.of(
                                 "q", config.query(),
-                                "start", recalculatedInterval.getStartTime().toString(),
-                                "end", recalculatedInterval.getEndTime().toString(),
+                                "start", queryInterval.getStartTime().toString(),
+                                "end", queryInterval.getEndTime().toString(),
                                 "step", config.interval().getSeconds()
                         ))
                 )

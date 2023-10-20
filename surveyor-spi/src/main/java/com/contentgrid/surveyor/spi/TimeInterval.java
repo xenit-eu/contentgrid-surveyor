@@ -46,6 +46,10 @@ public class TimeInterval {
         return (startTime.equals(instant) || startTime.isBefore(instant)) && endTime.isAfter(instant);
     }
 
+    public TimeInterval shiftedBy(Duration duration) {
+        return TimeInterval.between(startTime.plus(duration), endTime.plus(duration));
+    }
+
     public TimeInterval alignedToMultipleOf(Duration duration) {
         long multiple = getDuration().dividedBy(duration);
         Duration newDuration = duration.multipliedBy(multiple);
