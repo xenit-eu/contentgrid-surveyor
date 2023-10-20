@@ -1,5 +1,6 @@
 package com.contentgrid.surveyor.infrastructure.source.pegman;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +25,8 @@ public class SurveyorSourceMetricsPegmanConfiguration {
     List<PegmanEventMetricsSource> pegmanEventMetricsSource(
             List<SurveyorPegmanSourceProperties> prometheusSourceProperties,
             WebClient.Builder webclientBuilder,
-            HypermediaWebClientConfigurer webClientConfigurer
+            HypermediaWebClientConfigurer webClientConfigurer,
+            ObjectMapper objectMapper
     ) {
         return prometheusSourceProperties.stream()
                 .map(prometheusProperties -> {
@@ -35,7 +37,8 @@ public class SurveyorSourceMetricsPegmanConfiguration {
                             .password(prometheusProperties.password())
                             .bearer(prometheusProperties.bearer())
                             .build();
-                    return new PegmanEventMetricsSource(webclientBuilder, apiConfig, webClientConfigurer, prometheusProperties.name(),
+                    return new PegmanEventMetricsSource(webclientBuilder, apiConfig, webClientConfigurer,
+                            objectMapper, prometheusProperties.name(),
                             prometheusProperties.type());
                 })
                 .toList();

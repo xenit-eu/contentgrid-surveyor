@@ -2,11 +2,14 @@ package com.contentgrid.surveyor.infrastructure.source.pegman;
 
 import com.contentgrid.surveyor.infrastructure.source.pegman.transport.PegmanMetric;
 import com.contentgrid.surveyor.infrastructure.source.pegman.transport.PegmanMetric.MetricMeasuredValue;
+import com.contentgrid.surveyor.infrastructure.source.pegman.transport.PegmanMetricAssembler;
+import com.contentgrid.surveyor.jackson.streaming.parser.JsonStreamParser;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.source.CollectedMetric;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
 import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
@@ -32,6 +35,9 @@ public class PegmanEventMetricsSource implements EventMetricsSource {
     @NonNull
     private final WebClient webClient;
 
+    @NonNull
+    private final ObjectMapper objectMapper;
+
     @ToString.Include
     @NonNull
     private final String systemName;
@@ -44,11 +50,13 @@ public class PegmanEventMetricsSource implements EventMetricsSource {
             WebClient.Builder clientBuilder,
             PegmanApiConfig config,
             HypermediaWebClientConfigurer webClientConfigurer,
+            ObjectMapper objectMapper,
             String systemName,
             String type
     ) {
         this(
                 configureClient(clientBuilder, config.andThen(webClientConfigurer::registerHypermediaTypes)),
+                objectMapper,
                 systemName,
                 type
         );
@@ -91,10 +99,15 @@ public class PegmanEventMetricsSource implements EventMetricsSource {
                                 "end", recalculatedInterval.getEndTime().toString()
                         ))
                 )
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<CollectionModel<PegmanMetric>>() {
+                .exchangeToFlux(response -> {
+                    if (response.statusCode().is2xxSuccessful()) {
+                        return response.body((body, context) -> JsonStreamParser.parse(body.getBody(),
+                                new PegmanMetricAssembler(objectMapper), objectMapper));
+                    } else {
+                        return Flux.from(response.createError());
+                    }
                 })
-                .flatMapMany(response -> this.toMetrics(config, response))
+                .flatMap(response -> this.toMetrics(config, response))
                 .filter(metric -> recalculatedInterval.contains(metric.timeInterval()).isContained())
                 .toStream();
     }

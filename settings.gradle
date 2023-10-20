@@ -35,3 +35,5 @@ include 'surveyor-infrastructure-source-metrics-prometheus'
 include 'surveyor-infrastructure-source-metrics-pegman'
 
 include 'surveyor-usecases'
+
+include 'jackson-streaming-parser'
