@@ -65,7 +65,7 @@ public class PullMetricsUseCase implements PullMetrics {
                                 log.warn(
                                         "Failed to pull metrics for {}: no data in interval {}. Skipping.",
                                         resourceDefinition, nextInterval);
-                                lastEvent = lastEvent.nextInterval();
+                                nextInterval = nextInterval.nextInterval();
                             }
                         } while (!result);
                     } catch (CollectionFailedException e) {
