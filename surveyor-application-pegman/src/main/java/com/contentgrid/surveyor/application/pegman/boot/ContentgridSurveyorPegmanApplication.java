@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.pegman.boot;
+package com.contentgrid.surveyor.application.pegman.boot;
 
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
 import com.contentgrid.surveyor.infrastructure.config.spring.SurveyorSpringConfiguration;

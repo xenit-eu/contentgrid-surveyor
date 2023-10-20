@@ -1,6 +1,5 @@
-package com.contentgrid.surveyor.surveyor.boot;
+package com.contentgrid.surveyor.application.surveyor.boot;
 
-import com.contentgrid.surveyor.api.metrics.FindInsightMetrics;
 import com.contentgrid.surveyor.api.pull.PullMetrics;
 import com.contentgrid.surveyor.drivers.schedule.SurveyorSchedulerConfiguration;
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
@@ -15,7 +14,7 @@ import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
 import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.StoreEventCountMetricSpiPort;
-import com.contentgrid.surveyor.surveyor.boot.autoconfigure.OptionalDataSourceAutoConfiguration;
+import com.contentgrid.surveyor.application.surveyor.boot.autoconfigure.OptionalDataSourceAutoConfiguration;
 import com.contentgrid.surveyor.usecase.metrics.FindMetricsUseCase;
 import com.contentgrid.surveyor.usecase.pull.PullMetricsUseCase;
 import java.util.List;

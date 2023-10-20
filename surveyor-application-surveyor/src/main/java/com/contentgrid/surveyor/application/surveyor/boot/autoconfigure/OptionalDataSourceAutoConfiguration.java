@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.surveyor.boot.autoconfigure;
+package com.contentgrid.surveyor.application.surveyor.boot.autoconfigure;
 
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

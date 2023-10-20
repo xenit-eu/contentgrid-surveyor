@@ -1,6 +1,5 @@
-package com.contentgrid.surveyor.application.boot;
+package com.contentgrid.surveyor.application.pegman.boot;
 
-import com.contentgrid.surveyor.pegman.boot.ContentgridSurveyorPegmanApplication;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.test.context.TestConfiguration;
 
