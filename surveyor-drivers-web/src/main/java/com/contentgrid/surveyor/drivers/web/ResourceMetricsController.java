@@ -10,31 +10,29 @@ import com.contentgrid.surveyor.api.metrics.FindInsightMetrics.FindInsightMetric
 import com.contentgrid.surveyor.api.metrics.Metric;
 import com.contentgrid.surveyor.api.metrics.Resource;
 import com.contentgrid.surveyor.drivers.web.MetricRepresentationModel.MetricData;
+import com.contentgrid.surveyor.jackson.streaming.generator.DataBufferOutputStream;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonGenerator.Feature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.reactivestreams.Subscription;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.function.ServerResponse;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 
 @RestController
@@ -47,11 +45,12 @@ public class ResourceMetricsController {
     private final ObjectMapper objectMapper;
 
     @GetMapping("/metrics/{resourceType}:{metric}")
-    public ResponseEntity<StreamingResponseBody> exportMetrics(
+    public Mono<Void> exportMetrics(
             @PathVariable String resourceType,
             @PathVariable String metric,
             @RequestParam Instant start,
-            @RequestParam Instant end
+            @RequestParam Instant end,
+            ServerHttpResponse response
     ) {
         ExportMetricsCommand command = ExportMetricsCommand.builder()
                 .resourceType(resourceType)
@@ -61,35 +60,33 @@ public class ResourceMetricsController {
                 .build();
         var metrics = exportMetrics.findMetricsForExport(command);
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(
-                        new StreamingResponseBody() {
-                            @Override
-                            public void writeTo(OutputStream outputStream) throws IOException {
-                                var latch = new CountDownLatch(1);
-                                var generator = objectMapper.createGenerator(outputStream);
+        var dataBuffers = Flux.<DataBuffer>create(sink -> {
+            var outputStream = new DataBufferOutputStream(
+                    response.bufferFactory(),
+                    sink::next
+            );
+            try {
+                var generator = objectMapper.createGenerator(outputStream);
 
-                                generator.disable(Feature.AUTO_CLOSE_TARGET);
+                generator.writeStartObject();
+                generator.writeFieldName("_embedded");
+                generator.writeStartObject();
+                generator.writeFieldName("metrics");
+                generator.writeStartArray();
 
-                                generator.writeStartObject();
-                                generator.writeFieldName("_embedded");
-                                generator.writeStartObject();
-                                generator.writeFieldName("metrics");
-                                generator.writeStartArray();
+                Flux.from(metrics)
+                        .doOnError(sink::error)
+                        .subscribe(new ExportedMetricsWritingSubscriber(generator, sink::complete));
+            } catch (IOException ioException) {
+                sink.error(ioException);
+            }
+        });
 
-                                Flux.from(metrics)
-                                        .subscribe(new ExportedMetricsWritingSubscriber(generator, latch));
+        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
-                                // Wait for the flux to be fully finished
-                                try {
-                                    latch.await();
-                                } catch (InterruptedException e) {
-                                    Thread.currentThread().interrupt();
-                                }
+        return response.writeWith(dataBuffers)
+                .then(Mono.defer(response::setComplete));
 
-                            }
-                        });
     }
 
     @GetMapping("/metrics/insights/{system}/{resourceType}/{resourceId}")
@@ -156,7 +153,7 @@ public class ResourceMetricsController {
     private static class ExportedMetricsWritingSubscriber extends BaseSubscriber<ExportedMetrics> {
 
         private final JsonGenerator generator;
-        private final CountDownLatch latch;
+        private final Runnable finished;
 
         @Override
         protected void hookOnSubscribe(Subscription subscription) {
@@ -187,8 +184,7 @@ public class ResourceMetricsController {
         @SneakyThrows
         protected void hookFinally(SignalType type) {
             generator.close();
-            // Wait with releasing the response until after the generator is closed
-            latch.countDown();
+            finished.run();
         }
 
         private class MetricWriterSubscriber extends BaseSubscriber<Metric> {

@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
@@ -118,7 +119,7 @@ public class PullMetricsUseCase implements PullMetrics {
     @FunctionalInterface
     interface MetricCollector {
 
-        Stream<CollectedMetric> collect(EventMetricsSource metricsSource, MetricCollectionConfig config,
+        Publisher<CollectedMetric> collect(EventMetricsSource metricsSource, MetricCollectionConfig config,
                 TimeInterval timeInterval) throws CollectionFailedException;
     }
 
@@ -132,7 +133,7 @@ public class PullMetricsUseCase implements PullMetrics {
             return true;
         }
 
-        var metrics = Flux.fromStream(metricCollector.collect(metricSource, metricCollectionConfig, timeInterval))
+        var metrics = Flux.from(metricCollector.collect(metricSource, metricCollectionConfig, timeInterval))
                 .map(metric -> new EventCountMetric(
                         metric.timeInterval(),
                         new Resource(metricSource.resourceDefinition(metricCollectionConfig).orElseThrow(),

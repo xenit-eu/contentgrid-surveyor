@@ -15,12 +15,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.ParameterizedTypeReference;
+import org.reactivestreams.Publisher;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.config.HypermediaWebClientConfigurer;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -78,14 +77,14 @@ public class PegmanEventMetricsSource implements EventMetricsSource {
     }
 
     @Override
-    public Stream<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant startedAt)
+    public Publisher<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant startedAt)
             throws CollectionFailedException {
         var interval = TimeInterval.after(startedAt, config.interval());
         return collectMetricsForBackfilling(config, interval);
     }
 
     @Override
-    public Stream<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, TimeInterval interval)
+    public Publisher<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, TimeInterval interval)
             throws CollectionFailedException {
         var recalculatedInterval = interval.alignedToMultipleOf(config.interval());
 
@@ -108,8 +107,7 @@ public class PegmanEventMetricsSource implements EventMetricsSource {
                     }
                 })
                 .flatMap(response -> this.toMetrics(config, response))
-                .filter(metric -> recalculatedInterval.contains(metric.timeInterval()).isContained())
-                .toStream();
+                .filter(metric -> recalculatedInterval.contains(metric.timeInterval()).isContained());
     }
 
     private Flux<CollectedMetric> toMetrics(MetricCollectionConfig config, CollectionModel<PegmanMetric> response) {

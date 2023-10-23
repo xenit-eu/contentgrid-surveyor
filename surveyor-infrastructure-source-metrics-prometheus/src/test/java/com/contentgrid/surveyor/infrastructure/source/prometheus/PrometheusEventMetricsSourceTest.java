@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.test.FakeMetrics;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.test.FakeMetrics.MetricDefinition;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.test.PrometheusContainer;
+import com.contentgrid.surveyor.spi.ResourceDefinition;
+import com.contentgrid.surveyor.spi.TimeInterval;
+import com.contentgrid.surveyor.spi.source.CollectedMetric;
 import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -19,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 @Testcontainers
 class PrometheusEventMetricsSourceTest {
@@ -91,25 +96,24 @@ class PrometheusEventMetricsSourceTest {
                 .interval(Duration.ofHours(1))
                 .resourceIdLabel("resource")
                 .build();
+        var staticDefinition = new ResourceDefinition("prometheus-test", "test", "test");
         var source = new PrometheusEventMetricsSource(WebClient.builder(), objectMapper, api, "prometheus-test",
                 config.type());
 
-        assertThat(source.collectMetrics(config, FAKE_METRICS_START)).satisfiesExactlyInAnyOrder(
-                resourceAbc -> {
-                    assertThat(resourceAbc.resourceId()).isEqualTo("abc");
-                    assertThat(resourceAbc.timeInterval().getStartTime()).isEqualTo(FAKE_METRICS_START);
-                    assertThat(resourceAbc.timeInterval().getEndTime()).isEqualTo(
-                            FAKE_METRICS_START.plus(1, ChronoUnit.HOURS));
-                    assertThat(resourceAbc.value()).isEqualTo(BigDecimal.valueOf(8));
-                },
-                resourceXyz -> {
-                    assertThat(resourceXyz.resourceId()).isEqualTo("xyz");
-                    assertThat(resourceXyz.timeInterval().getStartTime()).isEqualTo(FAKE_METRICS_START);
-                    assertThat(resourceXyz.timeInterval().getEndTime()).isEqualTo(
-                            FAKE_METRICS_START.plus(1, ChronoUnit.HOURS));
-                    assertThat(resourceXyz.value()).isEqualTo(BigDecimal.valueOf(15.3));
-                }
-        );
+        StepVerifier.create(source.collectMetrics(config, FAKE_METRICS_START))
+                .expectNext(new CollectedMetric(
+                        staticDefinition,
+                        "abc",
+                        TimeInterval.after(FAKE_METRICS_START, Duration.ofHours(1)),
+                        BigDecimal.valueOf(8)
+                ))
+                .expectNext(new CollectedMetric(
+                        staticDefinition,
+                        "xyz",
+                        TimeInterval.after(FAKE_METRICS_START, Duration.ofHours(1)),
+                        BigDecimal.valueOf(15.3)
+                ))
+                .verifyComplete();
 
         var dynamicConfig = MetricCollectionConfig.builder()
                 .type("prometheus")
@@ -119,16 +123,19 @@ class PrometheusEventMetricsSourceTest {
                 .interval(Duration.ofHours(1))
                 .resourceIdLabel("resource")
                 .build();
+        var dynamicDefinition = new ResourceDefinition("prometheus-test", "test", "test");
 
-        assertThat(source.collectMetrics(dynamicConfig, FAKE_METRICS_START))
-                .filteredOn(m -> Objects.equals(m.resourceId(), "abc"))
-                .singleElement()
-                .satisfies(metric -> {
-                    assertThat(metric.timeInterval().getStartTime()).isEqualTo(FAKE_METRICS_START);
-                    assertThat(metric.timeInterval().getDuration()).isEqualTo(Duration.ofHours(1));
-                    // value is <minutes>/10 -> increases with 6 per hour
-                    assertThat(metric.value()).isEqualTo(BigDecimal.valueOf(6));
-                });
+        StepVerifier.create(Flux.from(source.collectMetrics(dynamicConfig, FAKE_METRICS_START))
+                        .filter(m -> Objects.equals(m.resourceId(), "abc")))
+                .expectNext(new CollectedMetric(
+                        dynamicDefinition,
+                        "abc",
+                        TimeInterval.after(FAKE_METRICS_START, Duration.ofHours(1)),
+                        // value is <minutes>/10 -> increases with 6 per hour
+                        BigDecimal.valueOf(6)
+                ))
+                .verifyComplete();
+
     }
 
 }

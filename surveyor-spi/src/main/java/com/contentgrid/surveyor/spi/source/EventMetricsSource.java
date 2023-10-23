@@ -4,17 +4,17 @@ import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import java.time.Instant;
 import java.util.Optional;
-import java.util.stream.Stream;
 import lombok.experimental.StandardException;
+import org.reactivestreams.Publisher;
 
 public interface EventMetricsSource {
 
     Optional<ResourceDefinition> resourceDefinition(MetricCollectionConfig config);
 
-    Stream<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant startedAt)
+    Publisher<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant startedAt)
             throws CollectionFailedException;
 
-    Stream<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, TimeInterval interval)
+    Publisher<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, TimeInterval interval)
             throws CollectionFailedException;
 
     @StandardException

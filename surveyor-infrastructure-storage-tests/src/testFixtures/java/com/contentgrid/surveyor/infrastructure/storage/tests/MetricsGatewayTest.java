@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 public abstract class MetricsGatewayTest {
 
@@ -45,13 +46,13 @@ public abstract class MetricsGatewayTest {
             interval = interval.nextInterval();
         }
 
-        var aggregation = aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
+        var aggregation = Mono.from(aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:10:00Z"),
                         Instant.parse("2020-01-01T02:10:00Z")
                 ), AggregationConfiguration.builder()
                         .thenBucket(Duration.ofHours(1), AggregationOperation.AVERAGE)
                         .finallyAggregate(AggregationOperation.SUM)
-        );
+        )).block();
 
         // averaged over 1 hour: values 10 -> 69 == 39.5
         //                       values 70 -> 129 == 99.5
@@ -64,13 +65,13 @@ public abstract class MetricsGatewayTest {
         // The interval [00:09:00,00:10:00) is taken into account, but the interval [02:09:00,02:10:00( is not taken into account
         // averaged over 1 hour: values 9 -> 68 == 38.5
         //                       values 69 -> 128 == 98.5
-        aggregation = aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
+        aggregation = Mono.from(aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:09:30Z"),
                         Instant.parse("2020-01-01T02:09:30Z")
                 ), AggregationConfiguration.builder()
                         .thenBucket(Duration.ofHours(1), AggregationOperation.AVERAGE)
                         .finallyAggregate(AggregationOperation.SUM)
-        );
+        )).block();
 
         assertThat(aggregation.getValue().stripTrailingZeros()).isEqualTo(
                 BigDecimal.valueOf(38.5 + 98.5).stripTrailingZeros());
@@ -95,38 +96,38 @@ public abstract class MetricsGatewayTest {
             interval = interval.nextInterval();
         }
 
-        var aggregation = aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
+        var aggregation = Mono.from(aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:10:00Z"),
                         Instant.parse("2020-01-01T02:10:00Z")
                 ), AggregationConfiguration.builder()
                         .thenBucket(Duration.ofHours(1), AggregationOperation.SUM)
                         .finallyAggregate(AggregationOperation.SUM)
-        );
+        )).block();
 
         // summed over 1 hour: 8*60 == 480
         assertThat(aggregation.getValue().stripTrailingZeros()).isEqualTo(
                 BigDecimal.valueOf(480 * 2).stripTrailingZeros());
 
         // When offset, the calculation remains the same
-        aggregation = aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
+        aggregation = Mono.from(aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:09:30Z"),
                         Instant.parse("2020-01-01T02:09:30Z")
                 ), AggregationConfiguration.builder()
                         .thenBucket(Duration.ofHours(1), AggregationOperation.SUM)
                         .finallyAggregate(AggregationOperation.SUM)
-        );
+        )).block();
 
         assertThat(aggregation.getValue().stripTrailingZeros()).isEqualTo(
                 BigDecimal.valueOf(480 * 2).stripTrailingZeros());
 
         // When grouped with a smaller interval, the calculation remains the same
-        aggregation = aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
+        aggregation = Mono.from(aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:09:30Z"),
                         Instant.parse("2020-01-01T02:09:30Z")
                 ), AggregationConfiguration.builder()
                         .thenBucket(Duration.ofHours(1), AggregationOperation.SUM)
                         .finallyAggregate(AggregationOperation.SUM)
-        );
+        )).block();
 
         assertThat(aggregation.getValue().stripTrailingZeros()).isEqualTo(
                 BigDecimal.valueOf(480 * 2).stripTrailingZeros());

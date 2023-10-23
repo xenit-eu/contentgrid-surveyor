@@ -1,14 +1,8 @@
 package com.contentgrid.surveyor.infrastructure.source.prometheus;
 
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusMatrixResult;
-import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse;
-import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse.PrometheusMatrixData;
-import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse.PrometheusVectorData;
-import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResponse.Status;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResult;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResultAssembler;
-import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResultAssembler.DataAssemblyResult;
-import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusResultAssembler.ErrorAssemblyResult;
 import com.contentgrid.surveyor.infrastructure.source.prometheus.transport.PrometheusVectorResult;
 import com.contentgrid.surveyor.jackson.streaming.parser.JsonStreamParser;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
@@ -22,10 +16,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.Builder;
 import reactor.core.publisher.Flux;
@@ -64,7 +58,7 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
     }
 
     @Override
-    public Stream<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant startedAt) {
+    public Publisher<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant startedAt) {
         // Prometheus range queries are covering the period *before* the time they are queried
         // So, a range query [1h] at 12:00 covers data from 11:00 -> 12:00
         var endTime = startedAt.plus(config.interval());
@@ -82,12 +76,11 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
                             new PrometheusResultAssembler<>(objectMapper, PrometheusVectorResult.class),
                             objectMapper));
                 })
-                .flatMap(assembly -> this.handleAssembly(config, assembly))
-                .toStream();
+                .flatMap(assembly -> this.handleAssembly(config, assembly));
     }
 
     @Override
-    public Stream<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, TimeInterval interval)
+    public Publisher<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, TimeInterval interval)
             throws CollectionFailedException {
         var recalculatedInterval = interval.alignedToMultipleOf(config.interval());
         // Prometheus range queries are covering the period *before* the time they are queried
@@ -115,8 +108,7 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
                             objectMapper));
                 })
                 .flatMap(assembly -> this.handleAssembly(config, assembly))
-                .filter(metric -> recalculatedInterval.contains(metric.timeInterval()).isContained())
-                .toStream();
+                .filter(metric -> recalculatedInterval.contains(metric.timeInterval()).isContained());
     }
 
     private Flux<CollectedMetric> handleAssembly(MetricCollectionConfig config,

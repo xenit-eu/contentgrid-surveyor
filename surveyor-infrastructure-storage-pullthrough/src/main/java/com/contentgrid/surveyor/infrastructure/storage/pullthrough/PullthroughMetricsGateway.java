@@ -49,8 +49,8 @@ public class PullthroughMetricsGateway implements AggregateEventCountMetricSpiPo
 
                     if (maybeDefinition.isPresent()) {
                         try {
-                            return Flux.fromStream(configAndSource.metricsSource()
-                                    .collectMetricsForBackfilling(configAndSource.config(), interval));
+                            return configAndSource.metricsSource()
+                                    .collectMetricsForBackfilling(configAndSource.config(), interval);
                         } catch (CollectionFailedException e) {
                             return Flux.error(e);
                         }
