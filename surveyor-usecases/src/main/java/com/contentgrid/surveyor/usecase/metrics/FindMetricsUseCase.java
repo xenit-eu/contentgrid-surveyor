@@ -2,9 +2,11 @@ package com.contentgrid.surveyor.usecase.metrics;
 
 import com.contentgrid.surveyor.api.metrics.BillingMetrics;
 import com.contentgrid.surveyor.api.metrics.ExportMetrics;
+import com.contentgrid.surveyor.api.metrics.ExportedMetrics;
 import com.contentgrid.surveyor.api.metrics.FindInsightMetrics;
 import com.contentgrid.surveyor.api.metrics.Metric;
 import com.contentgrid.surveyor.api.metrics.Resource;
+import com.contentgrid.surveyor.api.metrics.ResourceMetric;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.config.FindResourceAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
@@ -15,14 +17,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.GroupedFlux;
+import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
 public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, ExportMetrics {
@@ -50,79 +51,75 @@ public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, E
                 .bufferUntilChanged(this::toResource)
                 .map(metrics -> metrics.stream().collect(Collectors.groupingBy(
                         this::toResource,
-                        Collectors.mapping(metric -> new Metric(
-                                metric.getMeasureInterval().getStartTime(),
-                                metric.getMeasureInterval().getEndTime(),
-                                metric.getValue()
-                        ), Collectors.toList()))
+                        Collectors.mapping(this::toMetric, Collectors.toList()))
                 ))
                 .flatMap(groupedMetrics -> Flux.fromStream(groupedMetrics.entrySet().stream()
-                        .map(entry -> new ExportedMetricsImpl(entry.getKey(), entry.getValue()))
+                        .map(entry -> new StaticExportedMetrics(entry.getKey(), entry.getValue()))
                 ));
     }
 
     @Override
-    public Map<Resource, List<Metric>> findMetricsForInsights(FindInsightMetricsCommand command) {
-        var definitions = findResourceDefinitionsSpiPort.findResourceDefinitions(command.system(),
-                command.resourceType());
+    public Publisher<ExportedMetrics> findMetricsForInsights(FindInsightMetricsCommand command) {
+        var resources = findResourceDefinitionsSpiPort.findResourceDefinitions(command.system(),
+                        command.resourceType()).stream()
+                .map(definition -> new com.contentgrid.surveyor.spi.storage.Resource(definition, command.resourceId()));
 
         var interval = getInterval(command.start(), command.end());
         var step = Optional.ofNullable(command.step())
                 .orElseGet(() -> interval.getDuration().toDays() > 2 ? Duration.ofDays(1) : Duration.ofHours(1));
 
-        return definitions.stream()
-                .map(definition -> new com.contentgrid.surveyor.spi.storage.Resource(definition, command.resourceId()))
-                .flatMap(resource -> {
-                    return Flux.from(eventCountMetricSpiPort.findEventCountMetrics(
-                            resource,
-                            interval,
-                            findResourceAggregationConfigurationSpiPort.getInsightsAggregationConfiguration(
-                                    resource.getDefinition(), step)
-                    )).toStream();
-                })
-                .collect(
-                        Collectors.groupingBy(this::toResource,
-                                Collectors.mapping(metric -> new Metric(
-                                        metric.getMeasureInterval().getStartTime(),
-                                        metric.getMeasureInterval().getEndTime(),
-                                        metric.getValue()
-                                ), Collectors.toList())));
+        return Flux.fromStream(resources)
+                .map(resource -> new FluxExportedMetrics(
+                        this.toResource(resource),
+                        Flux.defer(() -> eventCountMetricSpiPort.findEventCountMetrics(
+                                resource,
+                                interval,
+                                findResourceAggregationConfigurationSpiPort.getInsightsAggregationConfiguration(
+                                        resource.getDefinition(), step)
+                        )).map(this::toMetric)
+                ));
     }
 
     @Override
-    public Map<Resource, Metric> findMetricsForBilling(BillingMetricsCommand command) {
-        var definitions = findResourceDefinitionsSpiPort.findResourceDefinitions(command.system(),
-                command.resourceType());
+    public Publisher<ResourceMetric> findMetricsForBilling(BillingMetricsCommand command) {
+        var resources = findResourceDefinitionsSpiPort.findResourceDefinitions(command.system(),
+                        command.resourceType()).stream()
+                .map(definition -> new com.contentgrid.surveyor.spi.storage.Resource(definition, command.resourceId()));
 
         var interval = getInterval(command.start(), command.end());
 
-        return definitions.stream()
-                .map(definition -> new com.contentgrid.surveyor.spi.storage.Resource(definition, command.resourceId()))
+        return Flux.fromStream(resources)
                 .flatMap(resource -> {
                     var groupingConfig = findResourceAggregationConfigurationSpiPort.getBillingAggregationConfiguration(
                             resource.getDefinition(), interval.getDuration());
-                    return Flux.from(
+
+                    return Mono.from(
                                     eventCountMetricSpiPort.getAggregatedEventCountMetric(resource, interval, groupingConfig))
-                            .toStream();
-                })
-                .collect(Collectors.toMap(this::toResource,
-                        metric -> new Metric(
-                                metric.getMeasureInterval().getStartTime(),
-                                metric.getMeasureInterval().getEndTime(),
-                                metric.getValue()
-                        )));
+                            .map(metric -> new ResourceMetricImpl(this.toResource(resource), this.toMetric(metric)));
+                });
+
+    }
+
+    private Metric toMetric(EventCountMetric metric) {
+        return new Metric(
+                metric.getMeasureInterval().getStartTime(),
+                metric.getMeasureInterval().getEndTime(),
+                metric.getValue()
+        );
     }
 
     private Resource toResource(EventCountMetric metric) {
-        var resource = metric.getResource();
+        return toResource(metric.getResource());
+    }
+
+    private Resource toResource(com.contentgrid.surveyor.spi.storage.Resource resource) {
         var definition = resource.getDefinition();
         return new Resource(
                 definition.sourceSystem(),
                 definition.resourceType(),
-                metric.getResource().getResourceId(),
+                resource.getResourceId(),
                 definition.metricName()
         );
-
     }
 
     private TimeInterval getInterval(Instant start, Instant end) {
@@ -136,7 +133,7 @@ public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, E
     }
 
     @RequiredArgsConstructor
-    private static class ExportedMetricsImpl implements ExportedMetrics {
+    private static class StaticExportedMetrics implements ExportedMetrics {
 
         private final Resource resource;
         private final List<Metric> metrics;
@@ -150,5 +147,20 @@ public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, E
         public Publisher<Metric> metrics() {
             return Flux.fromIterable(metrics);
         }
+    }
+
+    private record FluxExportedMetrics(
+            Resource resource,
+            Publisher<Metric> metrics
+    ) implements ExportedMetrics {
+
+
+    }
+
+    private record ResourceMetricImpl(
+            Resource resource,
+            Metric metric
+    ) implements com.contentgrid.surveyor.api.metrics.ResourceMetric {
+
     }
 }

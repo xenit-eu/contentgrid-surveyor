@@ -4,11 +4,12 @@ import com.contentgrid.surveyor.api.metrics.BillingMetrics;
 import com.contentgrid.surveyor.api.metrics.BillingMetrics.BillingMetricsCommand;
 import com.contentgrid.surveyor.api.metrics.ExportMetrics;
 import com.contentgrid.surveyor.api.metrics.ExportMetrics.ExportMetricsCommand;
-import com.contentgrid.surveyor.api.metrics.ExportMetrics.ExportedMetrics;
+import com.contentgrid.surveyor.api.metrics.ExportedMetrics;
 import com.contentgrid.surveyor.api.metrics.FindInsightMetrics;
 import com.contentgrid.surveyor.api.metrics.FindInsightMetrics.FindInsightMetricsCommand;
 import com.contentgrid.surveyor.api.metrics.Metric;
 import com.contentgrid.surveyor.api.metrics.Resource;
+import com.contentgrid.surveyor.api.metrics.ResourceMetric;
 import com.contentgrid.surveyor.drivers.web.MetricRepresentationModel.MetricData;
 import com.contentgrid.surveyor.jackson.streaming.generator.DataBufferOutputStream;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -18,6 +19,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.reactivestreams.Subscription;
@@ -29,7 +31,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -90,7 +91,7 @@ public class ResourceMetricsController {
     }
 
     @GetMapping("/metrics/insights/{system}/{resourceType}/{resourceId}")
-    public CollectionModel<MetricRepresentationModel> insightMetrics(
+    public Mono<CollectionModel<MetricRepresentationModel>> insightMetrics(
             @PathVariable String system,
             @PathVariable String resourceType,
             @PathVariable String resourceId,
@@ -106,8 +107,13 @@ public class ResourceMetricsController {
                 .end(end)
                 .step(step)
                 .build();
-        var metricsForInsights = findInsightMetrics.findMetricsForInsights(command);
-        return toMetricRepresentationCollection(metricsForInsights);
+        return Flux.from(findInsightMetrics.findMetricsForInsights(command))
+                .flatMap(m -> Flux.from(m.metrics())
+                        .collectList()
+                        .map(metrics -> Map.entry(m.resource(), metrics))
+                )
+                .collectMap(Entry::getKey, Entry::getValue)
+                .map(ResourceMetricsController::toMetricRepresentationCollection);
     }
 
     private static CollectionModel<MetricRepresentationModel> toMetricRepresentationCollection(
@@ -124,29 +130,30 @@ public class ResourceMetricsController {
     }
 
     @GetMapping("/metrics/billing/{system}/{resourceType}/{resourceId}")
-    public CollectionModel<AggregateRepresentationModel> billingMetrics(
+    public Mono<CollectionModel<AggregateRepresentationModel>> billingMetrics(
             @PathVariable String system,
             @PathVariable String resourceType,
             @PathVariable String resourceId,
             @RequestParam(required = false) Instant start,
             @RequestParam(required = false) Instant end
     ) {
-        return CollectionModel.of(billingMetrics.findMetricsForBilling(BillingMetricsCommand.builder()
-                        .system(system)
-                        .resourceType(resourceType)
-                        .resourceId(resourceId)
-                        .start(start)
-                        .end(end)
-                        .build())
-                .entrySet()
-                .stream()
-                .map(resourceAndMetric -> new AggregateRepresentationModel(
-                        ResourceRepresentationModel.from(resourceAndMetric.getKey()),
-                        resourceAndMetric.getValue()
-                                .startTime(), resourceAndMetric.getValue().endTime(),
-                        resourceAndMetric.getValue().value())
-                ).toList()
-        );
+        var command = BillingMetricsCommand.builder()
+                .system(system)
+                .resourceType(resourceType)
+                .resourceId(resourceId)
+                .start(start)
+                .end(end)
+                .build();
+
+        return Flux.from(billingMetrics.findMetricsForBilling(command))
+                .map(resourceMetric -> new AggregateRepresentationModel(
+                        ResourceRepresentationModel.from(resourceMetric.resource()),
+                        resourceMetric.metric().startTime(),
+                        resourceMetric.metric().endTime(),
+                        resourceMetric.metric().value()
+                ))
+                .collectList()
+                .map(CollectionModel::of);
     }
 
     @RequiredArgsConstructor

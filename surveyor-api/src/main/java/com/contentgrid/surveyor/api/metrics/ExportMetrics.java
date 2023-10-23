@@ -23,11 +23,4 @@ public interface ExportMetrics {
 
     }
 
-    interface ExportedMetrics {
-
-        Resource resource();
-
-        Publisher<Metric> metrics();
-    }
-
 }

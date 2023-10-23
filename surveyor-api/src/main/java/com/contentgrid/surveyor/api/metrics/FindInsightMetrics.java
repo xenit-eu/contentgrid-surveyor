@@ -2,14 +2,13 @@ package com.contentgrid.surveyor.api.metrics;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import lombok.Builder;
 import lombok.NonNull;
+import org.reactivestreams.Publisher;
 
 public interface FindInsightMetrics {
 
-    Map<Resource, List<Metric>> findMetricsForInsights(FindInsightMetricsCommand command);
+    Publisher<ExportedMetrics> findMetricsForInsights(FindInsightMetricsCommand command);
 
     @Builder
     record FindInsightMetricsCommand(

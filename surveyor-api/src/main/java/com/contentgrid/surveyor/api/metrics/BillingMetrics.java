@@ -4,10 +4,11 @@ import java.time.Instant;
 import java.util.Map;
 import lombok.Builder;
 import lombok.NonNull;
+import org.reactivestreams.Publisher;
 
 public interface BillingMetrics {
 
-    Map<Resource, Metric> findMetricsForBilling(BillingMetricsCommand command);
+    Publisher<ResourceMetric> findMetricsForBilling(BillingMetricsCommand command);
 
     @Builder
     record BillingMetricsCommand(
