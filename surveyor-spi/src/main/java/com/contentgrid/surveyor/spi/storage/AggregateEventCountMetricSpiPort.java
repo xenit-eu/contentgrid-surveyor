@@ -3,23 +3,19 @@ package com.contentgrid.surveyor.spi.storage;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
-import java.math.BigDecimal;
-import java.util.List;
+import org.reactivestreams.Publisher;
 
 public interface AggregateEventCountMetricSpiPort {
 
-    default EventCountMetric getAggregatedEventCountMetric(Resource resource, TimeInterval interval,
+    default Publisher<EventCountMetric> getAggregatedEventCountMetric(Resource resource, TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
-        return Util.onlyValue(
-                findEventCountMetrics(resource, interval, aggregationConfiguration),
-                () -> new EventCountMetric(interval, resource, BigDecimal.ZERO)
-        );
+        return Util.onlyValue(findEventCountMetrics(resource, interval, aggregationConfiguration));
     }
 
-    List<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
+    Publisher<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
             AggregationConfiguration aggregationConfiguration);
 
-    List<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition, TimeInterval interval,
+    Publisher<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition, TimeInterval interval,
             AggregationConfiguration aggregationConfiguration);
 
 

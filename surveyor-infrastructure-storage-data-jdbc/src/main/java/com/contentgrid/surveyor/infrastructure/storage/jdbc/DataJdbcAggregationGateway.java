@@ -12,13 +12,15 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.reactivestreams.FlowAdapters;
+import org.reactivestreams.Publisher;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
 public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiPort {
@@ -28,7 +30,7 @@ public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiP
     private final ConversionService conversionService;
 
     @Override
-    public List<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
+    public Publisher<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
         var resourceEntity = resourceRepository.upsert(ResourceEntity.from(resource));
         var query = buildQuery(aggregationConfiguration, """
@@ -37,7 +39,7 @@ public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiP
                     and end_time > :startTime and end_time <= :endTime
                 """);
 
-        return jdbcTemplate.query(
+        var stream = jdbcTemplate.queryForStream(
                 query,
                 Map.of(
                         "resourceId", resourceEntity.getId(),
@@ -53,11 +55,13 @@ public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiP
                         rs.getBigDecimal("value")
                 )
         );
+        return Flux.fromStream(stream);
     }
 
     @Override
     @Transactional
-    public List<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition, TimeInterval interval,
+    public Publisher<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition,
+            TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
         Map<Long, Resource> resources;
         try (var resourceStream = resourceRepository.findAllBySourceSystemAndResourceTypeAndMetricName(
@@ -84,7 +88,7 @@ public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiP
                     and end_time > :startTime and end_time <= :endTime
                 """);
 
-        return jdbcTemplate.query(
+        var stream = jdbcTemplate.queryForStream(
                 query,
                 Map.of(
                         "resourceIds", resources.keySet(),
@@ -100,6 +104,8 @@ public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiP
                         rs.getBigDecimal("value")
                 )
         );
+
+        return Flux.fromStream(stream);
 
     }
 

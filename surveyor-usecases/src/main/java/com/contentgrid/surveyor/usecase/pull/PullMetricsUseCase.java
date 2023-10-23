@@ -2,6 +2,7 @@ package com.contentgrid.surveyor.usecase.pull;
 
 import com.contentgrid.surveyor.api.pull.PullMetrics;
 import com.contentgrid.surveyor.spi.TimeInterval;
+import com.contentgrid.surveyor.spi.source.CollectedMetric;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource.CollectionFailedException;
 import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
@@ -13,8 +14,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -98,33 +102,29 @@ public class PullMetricsUseCase implements PullMetrics {
         }
     }
 
+
     private boolean tryPullMetrics(MetricCollectionConfig metricCollectionConfig, EventMetricsSource metricSource,
             TimeInterval timeInterval) throws CollectionFailedException {
-        if (!Instant.now().isAfter(timeInterval.getEndTime())) {
-            log.info("Not pulling new metrics from source {} with query '{}' as we are still within the interval {}",
-                    metricSource, metricCollectionConfig.query(),
-                    timeInterval);
-            return true;
-        }
-
-        var metrics = metricSource.collectMetrics(metricCollectionConfig, timeInterval.getStartTime())
-                .map(metric -> new EventCountMetric(
-                        metric.timeInterval(),
-                        new Resource(metricSource.resourceDefinition(metricCollectionConfig).orElseThrow(),
-                                metric.resourceId()),
-                        metric.value()
-                )).toList();
-        log.info("Pulled new metrics from source {} with query '{}' (interval {}): {} datapoints", metricSource,
-                metricCollectionConfig.query(), timeInterval,
-                metrics.size());
-
-        storeEventCountMetricSpiPort.storeEventMetrics(metrics);
-
-        return !metrics.isEmpty();
+        return tryPullMetricsGeneric(metricSource, metricCollectionConfig, timeInterval,
+                (source, config, interval) -> source.collectMetrics(config, interval.getStartTime()));
     }
 
     private boolean tryPullMetricsBulk(MetricCollectionConfig metricCollectionConfig, EventMetricsSource metricSource,
             TimeInterval timeInterval) throws CollectionFailedException {
+        return tryPullMetricsGeneric(metricSource, metricCollectionConfig, timeInterval,
+                EventMetricsSource::collectMetricsForBackfilling);
+    }
+
+    @FunctionalInterface
+    interface MetricCollector {
+
+        Stream<CollectedMetric> collect(EventMetricsSource metricsSource, MetricCollectionConfig config,
+                TimeInterval timeInterval) throws CollectionFailedException;
+    }
+
+    private boolean tryPullMetricsGeneric(EventMetricsSource metricSource,
+            MetricCollectionConfig metricCollectionConfig, TimeInterval timeInterval, MetricCollector metricCollector)
+            throws CollectionFailedException {
         if (!Instant.now().isAfter(timeInterval.getEndTime())) {
             log.info("Not pulling new metrics from source {} with query '{}' as we are still within the interval {}",
                     metricSource, metricCollectionConfig.query(),
@@ -132,19 +132,27 @@ public class PullMetricsUseCase implements PullMetrics {
             return true;
         }
 
-        var metrics = metricSource.collectMetricsForBackfilling(metricCollectionConfig, timeInterval)
+        var metrics = Flux.fromStream(metricCollector.collect(metricSource, metricCollectionConfig, timeInterval))
                 .map(metric -> new EventCountMetric(
                         metric.timeInterval(),
                         new Resource(metricSource.resourceDefinition(metricCollectionConfig).orElseThrow(),
                                 metric.resourceId()),
                         metric.value()
-                )).toList();
-        log.info("Pulled new metrics from source {} with query '{}' (interval {}): {} datapoints", metricSource,
-                metricCollectionConfig.query(), timeInterval,
-                metrics.size());
+                ));
 
-        storeEventCountMetricSpiPort.storeEventMetrics(metrics);
+        AtomicLong metricSize = new AtomicLong();
+        metrics.doOnNext(item -> metricSize.getAndIncrement());
+        metrics.doOnComplete(() -> {
+            log.info("Pulled new metrics from source {} with query '{}' (interval {}): {} datapoints", metricSource,
+                    metricCollectionConfig.query(), timeInterval,
+                    metricSize.get());
+        });
 
-        return !metrics.isEmpty();
+        metrics.buffer(1000)
+                .doOnNext(storeEventCountMetricSpiPort::storeEventMetrics)
+                .blockLast();
+
+        return metricSize.get() == 0;
+
     }
 }

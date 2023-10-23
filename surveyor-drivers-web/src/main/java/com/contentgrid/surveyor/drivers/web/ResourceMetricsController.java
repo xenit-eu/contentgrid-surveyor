@@ -4,20 +4,38 @@ import com.contentgrid.surveyor.api.metrics.BillingMetrics;
 import com.contentgrid.surveyor.api.metrics.BillingMetrics.BillingMetricsCommand;
 import com.contentgrid.surveyor.api.metrics.ExportMetrics;
 import com.contentgrid.surveyor.api.metrics.ExportMetrics.ExportMetricsCommand;
+import com.contentgrid.surveyor.api.metrics.ExportMetrics.ExportedMetrics;
 import com.contentgrid.surveyor.api.metrics.FindInsightMetrics;
 import com.contentgrid.surveyor.api.metrics.FindInsightMetrics.FindInsightMetricsCommand;
 import com.contentgrid.surveyor.api.metrics.Metric;
 import com.contentgrid.surveyor.api.metrics.Resource;
+import com.contentgrid.surveyor.drivers.web.MetricRepresentationModel.MetricData;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonGenerator.Feature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import org.reactivestreams.Subscription;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.function.ServerResponse;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import reactor.core.publisher.BaseSubscriber;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.SignalType;
 
 @RestController
 @RequiredArgsConstructor
@@ -26,9 +44,10 @@ public class ResourceMetricsController {
     private final ExportMetrics exportMetrics;
     private final FindInsightMetrics findInsightMetrics;
     private final BillingMetrics billingMetrics;
+    private final ObjectMapper objectMapper;
 
     @GetMapping("/metrics/{resourceType}:{metric}")
-    public CollectionModel<MetricRepresentationModel> exportMetrics(
+    public ResponseEntity<StreamingResponseBody> exportMetrics(
             @PathVariable String resourceType,
             @PathVariable String metric,
             @RequestParam Instant start,
@@ -42,7 +61,35 @@ public class ResourceMetricsController {
                 .build();
         var metrics = exportMetrics.findMetricsForExport(command);
 
-        return toMetricRepresentationCollection(metrics);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(
+                        new StreamingResponseBody() {
+                            @Override
+                            public void writeTo(OutputStream outputStream) throws IOException {
+                                var latch = new CountDownLatch(1);
+                                var generator = objectMapper.createGenerator(outputStream);
+
+                                generator.disable(Feature.AUTO_CLOSE_TARGET);
+
+                                generator.writeStartObject();
+                                generator.writeFieldName("_embedded");
+                                generator.writeStartObject();
+                                generator.writeFieldName("metrics");
+                                generator.writeStartArray();
+
+                                Flux.from(metrics)
+                                        .subscribe(new ExportedMetricsWritingSubscriber(generator, latch));
+
+                                // Wait for the flux to be fully finished
+                                try {
+                                    latch.await();
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                }
+
+                            }
+                        });
     }
 
     @GetMapping("/metrics/insights/{system}/{resourceType}/{resourceId}")
@@ -103,5 +150,62 @@ public class ResourceMetricsController {
                         resourceAndMetric.getValue().value())
                 ).toList()
         );
+    }
+
+    @RequiredArgsConstructor
+    private static class ExportedMetricsWritingSubscriber extends BaseSubscriber<ExportedMetrics> {
+
+        private final JsonGenerator generator;
+        private final CountDownLatch latch;
+
+        @Override
+        protected void hookOnSubscribe(Subscription subscription) {
+            subscription.request(1);
+        }
+
+        @Override
+        @SneakyThrows
+        protected void hookOnNext(ExportedMetrics value) {
+            generator.writeStartObject();
+            generator.writeFieldName("resource");
+            generator.writeObject(ResourceRepresentationModel.from(value.resource()));
+            generator.writeFieldName("data");
+            generator.writeStartArray();
+
+            value.metrics().subscribe(new MetricWriterSubscriber());
+        }
+
+        @Override
+        @SneakyThrows
+        protected void hookOnComplete() {
+            generator.writeEndArray();
+            generator.writeEndObject();
+            generator.writeEndObject();
+        }
+
+        @Override
+        @SneakyThrows
+        protected void hookFinally(SignalType type) {
+            generator.close();
+            // Wait with releasing the response until after the generator is closed
+            latch.countDown();
+        }
+
+        private class MetricWriterSubscriber extends BaseSubscriber<Metric> {
+
+            @Override
+            @SneakyThrows
+            protected void hookOnNext(Metric value) {
+                generator.writeObject(new MetricData(value.startTime(), value.endTime(), value.value()));
+            }
+
+            @Override
+            @SneakyThrows
+            protected void hookOnComplete() {
+                generator.writeEndArray();
+                generator.writeEndObject();
+                ExportedMetricsWritingSubscriber.this.upstream().request(1);
+            }
+        }
     }
 }

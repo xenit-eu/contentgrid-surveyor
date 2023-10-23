@@ -4,6 +4,7 @@ plugins {
 }
 dependencies {
     implementation platform(project(':surveyor-dependencies'))
+    api 'org.reactivestreams:reactive-streams'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-engine'
     testImplementation 'org.junit.jupiter:junit-jupiter-params'

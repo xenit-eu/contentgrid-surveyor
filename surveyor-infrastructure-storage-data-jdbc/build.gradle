@@ -10,6 +10,7 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
     implementation 'org.flywaydb:flyway-core'
+    implementation 'io.projectreactor:reactor-core'
 
     runtimeOnly 'org.postgresql:postgresql'
 

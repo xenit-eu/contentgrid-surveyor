@@ -20,6 +20,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.GroupedFlux;
 
 @RequiredArgsConstructor
 public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, ExportMetrics {
@@ -29,27 +32,32 @@ public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, E
     private final FindResourceDefinitionsSpiPort findResourceDefinitionsSpiPort;
 
     @Override
-    public Map<Resource, List<Metric>> findMetricsForExport(ExportMetricsCommand command) {
+    public Publisher<ExportedMetrics> findMetricsForExport(ExportMetricsCommand command) {
         var maybeDefinition = findResourceDefinitionsSpiPort.findResourceDefinitions(command.resourceType())
                 .stream()
                 .filter(def -> Objects.equals(def.metricName(), command.metric()))
                 .findAny();
         if (maybeDefinition.isEmpty()) {
-            return Map.of();
+            return Flux.empty();
         }
 
         var interval = TimeInterval.between(command.start(), command.end());
 
-        return eventCountMetricSpiPort.findEventCountMetrics(maybeDefinition.orElseThrow(), interval,
-                        AggregationConfiguration.builder().finallyDontAggregate())
-                .stream()
-                .collect(Collectors.groupingBy(
+        return Flux.from(eventCountMetricSpiPort.findEventCountMetrics(maybeDefinition.orElseThrow(), interval,
+                        AggregationConfiguration.builder().finallyDontAggregate()))
+                // Buffering until changed means that there could be multiple sets for the same resource
+                // This should be fine as the response does not assume that there is only a single set for a single resource
+                .bufferUntilChanged(this::toResource)
+                .map(metrics -> metrics.stream().collect(Collectors.groupingBy(
                         this::toResource,
                         Collectors.mapping(metric -> new Metric(
                                 metric.getMeasureInterval().getStartTime(),
                                 metric.getMeasureInterval().getEndTime(),
                                 metric.getValue()
-                        ), Collectors.toList())
+                        ), Collectors.toList()))
+                ))
+                .flatMap(groupedMetrics -> Flux.fromStream(groupedMetrics.entrySet().stream()
+                        .map(entry -> new ExportedMetricsImpl(entry.getKey(), entry.getValue()))
                 ));
     }
 
@@ -65,12 +73,12 @@ public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, E
         return definitions.stream()
                 .map(definition -> new com.contentgrid.surveyor.spi.storage.Resource(definition, command.resourceId()))
                 .flatMap(resource -> {
-                    return eventCountMetricSpiPort.findEventCountMetrics(
+                    return Flux.from(eventCountMetricSpiPort.findEventCountMetrics(
                             resource,
                             interval,
                             findResourceAggregationConfigurationSpiPort.getInsightsAggregationConfiguration(
                                     resource.getDefinition(), step)
-                    ).stream();
+                    )).toStream();
                 })
                 .collect(
                         Collectors.groupingBy(this::toResource,
@@ -90,10 +98,12 @@ public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, E
 
         return definitions.stream()
                 .map(definition -> new com.contentgrid.surveyor.spi.storage.Resource(definition, command.resourceId()))
-                .map(resource -> {
+                .flatMap(resource -> {
                     var groupingConfig = findResourceAggregationConfigurationSpiPort.getBillingAggregationConfiguration(
                             resource.getDefinition(), interval.getDuration());
-                    return eventCountMetricSpiPort.getAggregatedEventCountMetric(resource, interval, groupingConfig);
+                    return Flux.from(
+                                    eventCountMetricSpiPort.getAggregatedEventCountMetric(resource, interval, groupingConfig))
+                            .toStream();
                 })
                 .collect(Collectors.toMap(this::toResource,
                         metric -> new Metric(
@@ -123,5 +133,22 @@ public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, E
             end = start.plus(1, ChronoUnit.DAYS);
         }
         return TimeInterval.between(start, end).alignedToMultipleOf(Duration.ofHours(1));
+    }
+
+    @RequiredArgsConstructor
+    private static class ExportedMetricsImpl implements ExportedMetrics {
+
+        private final Resource resource;
+        private final List<Metric> metrics;
+
+        @Override
+        public Resource resource() {
+            return resource;
+        }
+
+        @Override
+        public Publisher<Metric> metrics() {
+            return Flux.fromIterable(metrics);
+        }
     }
 }

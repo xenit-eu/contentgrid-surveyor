@@ -1,13 +1,13 @@
 package com.contentgrid.surveyor.api.metrics;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import lombok.Builder;
 import lombok.NonNull;
+import org.reactivestreams.Publisher;
 
 public interface ExportMetrics {
-    Map<Resource, List<Metric>> findMetricsForExport(ExportMetricsCommand command);
+
+    Publisher<ExportedMetrics> findMetricsForExport(ExportMetricsCommand command);
 
     @Builder
     record ExportMetricsCommand(
@@ -21,6 +21,13 @@ public interface ExportMetrics {
             Instant end
     ) {
 
+    }
+
+    interface ExportedMetrics {
+
+        Resource resource();
+
+        Publisher<Metric> metrics();
     }
 
 }

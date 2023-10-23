@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 
 public class InMemoryMetricsGateway implements StoreEventCountMetricSpiPort,
         AggregateEventCountMetricSpiPort,
@@ -35,21 +37,21 @@ public class InMemoryMetricsGateway implements StoreEventCountMetricSpiPort,
     private final Map<ResourceDefinition, TimeInterval> lastApplied = new HashMap<>();
 
     @Override
-    public List<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
+    public Publisher<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
         var metrics = getMetricsInInterval(resource, interval);
-        return bucketEventCountMetricsRecursive(metrics, resource, interval, aggregationConfiguration).toList();
+        return Flux.fromStream(bucketEventCountMetricsRecursive(metrics, resource, interval, aggregationConfiguration));
     }
 
     @Override
-    public List<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition, TimeInterval interval,
+    public Publisher<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition,
+            TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
 
         var resources = eventCountMetrics.keySet().stream()
-                .filter(resource -> Objects.equals(resource.getDefinition(), resourceDefinition))
-                .toList();
+                .filter(resource -> Objects.equals(resource.getDefinition(), resourceDefinition));
 
-        return resources.stream()
+        return Flux.fromStream(resources
                 .flatMap(
                         resource -> bucketEventCountMetricsRecursive(
                                 getMetricsInInterval(resource, interval),
@@ -57,11 +59,10 @@ public class InMemoryMetricsGateway implements StoreEventCountMetricSpiPort,
                                 interval,
                                 aggregationConfiguration
                         )
-                )
-                .toList();
+                ));
     }
 
-    public Stream<EventCountMetric> bucketEventCountMetricsRecursive(
+    private Stream<EventCountMetric> bucketEventCountMetricsRecursive(
             Stream<EventCountMetric> metrics,
             Resource resource,
             TimeInterval timeInterval,
