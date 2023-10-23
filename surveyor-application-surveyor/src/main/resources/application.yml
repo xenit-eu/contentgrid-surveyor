@@ -1,9 +1,4 @@
 surveyor:
-  systems:
-    pegman:
-      - name: eu-west-1.contentgrid.cloud
-        type: pegman
-        url: 'http://localhost:9088/'
   metrics:
     - type: pegman
       resource-type: storage
@@ -67,7 +62,6 @@ surveyor:
       query:
         query: 'storage:read_count'
         interval: PT1H
-        resource-id-label: resource_id
       insights:
         - period: PT1H
           operation: SUM
@@ -76,14 +70,31 @@ surveyor:
         - period: PT1H
           operation: SUM
         - operation: SUM
-#    - type: prometheus
-#      resource-type: db
-#      metric: connections
-#      query:
-#        query: 'sum by(datname) (max_over_time(rdb_instance_postgresql_pg_stat_database_numbackends{datname!=""}[1h]))'
-#        interval: PT1H
-#        resource-id-label: datname
-#      aggregation:
-#        period: PT1H
-#        operation: MAX
-
+    - type: pegman
+      resource-type: storage
+      metric: write_count
+      query:
+        query: 'storage:write_count'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+      billing:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+    - type: pegman
+      resource-type: db
+      metric: connections
+      query:
+        query: 'db:connections'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: MAX
+        - operation: MAX
+      billing:
+        - period: PT1H
+          operation: MAX
+        - operation: MAX
