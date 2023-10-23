@@ -16,6 +16,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -56,23 +58,22 @@ public class PullMetricsUseCase implements PullMetrics {
                             nextInterval.chunkedBy(Duration.ofDays(1)).forEachOrdered(interval -> {
                                 try {
                                     tryPullMetricsBulk(collectionConfig, metricSource, interval);
-                                    return;
                                 } catch (CollectionFailedException e) {
                                     log.warn("Failed to pull metrics for {}", resourceDefinition, e);
                                 }
                             });
                         }
 
-                        boolean result;
+                        PullResult result;
                         do {
                             result = tryPullMetrics(collectionConfig, metricSource, nextInterval);
-                            if (!result) {
+                            if (!result.hasData) {
                                 log.warn(
                                         "Failed to pull metrics for {}: no data in interval {}. Skipping.",
                                         resourceDefinition, nextInterval);
-                                nextInterval = nextInterval.nextInterval();
                             }
-                        } while (!result);
+                            nextInterval = nextInterval.nextInterval();
+                        } while (result.continueLoop);
                     } catch (CollectionFailedException e) {
                         log.error("Failed to pull new metrics for {}", resourceDefinition, e);
                     }
@@ -83,16 +84,16 @@ public class PullMetricsUseCase implements PullMetrics {
                         log.warn(
                                 "Metrics for {} are not initialized. Pulling data in bulk for interval {}",
                                 resourceDefinition, referenceInterval);
-                        boolean result;
+                        PullResult result;
                         do {
                             result = tryPullMetricsBulk(collectionConfig, metricSource, referenceInterval);
-                            if (!result) {
+                            if (!result.hasData) {
                                 log.warn(
                                         "Failed to pull metrics for {}: no data in interval {}. Skipping.",
                                         resourceDefinition, referenceInterval.nextInterval());
-                                referenceInterval = referenceInterval.nextInterval();
                             }
-                        } while (!result);
+                            referenceInterval = referenceInterval.nextInterval();
+                        } while (result.continueLoop);
                     } catch (CollectionFailedException e) {
                         log.error("Failed to pull new metrics for {}", resourceDefinition, e);
                     }
@@ -104,13 +105,14 @@ public class PullMetricsUseCase implements PullMetrics {
     }
 
 
-    private boolean tryPullMetrics(MetricCollectionConfig metricCollectionConfig, EventMetricsSource metricSource,
+    private PullResult tryPullMetrics(MetricCollectionConfig metricCollectionConfig, EventMetricsSource metricSource,
             TimeInterval timeInterval) throws CollectionFailedException {
         return tryPullMetricsGeneric(metricSource, metricCollectionConfig, timeInterval,
                 (source, config, interval) -> source.collectMetrics(config, interval.getStartTime()));
     }
 
-    private boolean tryPullMetricsBulk(MetricCollectionConfig metricCollectionConfig, EventMetricsSource metricSource,
+    private PullResult tryPullMetricsBulk(MetricCollectionConfig metricCollectionConfig,
+            EventMetricsSource metricSource,
             TimeInterval timeInterval) throws CollectionFailedException {
         return tryPullMetricsGeneric(metricSource, metricCollectionConfig, timeInterval,
                 EventMetricsSource::collectMetricsForBackfilling);
@@ -123,14 +125,14 @@ public class PullMetricsUseCase implements PullMetrics {
                 TimeInterval timeInterval) throws CollectionFailedException;
     }
 
-    private boolean tryPullMetricsGeneric(EventMetricsSource metricSource,
+    private PullResult tryPullMetricsGeneric(EventMetricsSource metricSource,
             MetricCollectionConfig metricCollectionConfig, TimeInterval timeInterval, MetricCollector metricCollector)
             throws CollectionFailedException {
         if (!Instant.now().isAfter(timeInterval.getEndTime())) {
             log.info("Not pulling new metrics from source {} with query '{}' as we are still within the interval {}",
                     metricSource, metricCollectionConfig.query(),
                     timeInterval);
-            return true;
+            return PullResult.TOO_SOON;
         }
 
         var metrics = Flux.from(metricCollector.collect(metricSource, metricCollectionConfig, timeInterval))
@@ -152,7 +154,22 @@ public class PullMetricsUseCase implements PullMetrics {
                 .doOnNext(storeEventCountMetricSpiPort::storeEventMetrics)
                 .blockLast();
 
-        return metricSize.get() == 0;
+        if (metricSize.get() == 0) {
+            return PullResult.NO_DATA;
+        } else {
+            return PullResult.RECEIVED_DATA;
+        }
+
+    }
+
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    enum PullResult {
+        TOO_SOON(false, false),
+        NO_DATA(true, false),
+        RECEIVED_DATA(true, true);
+
+        private final boolean continueLoop;
+        private final boolean hasData;
 
     }
 }

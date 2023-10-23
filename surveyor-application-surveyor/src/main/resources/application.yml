@@ -61,16 +61,21 @@ surveyor:
         - period: PT1H
           operation: SUM
         - operation: SUM
-#    - type: loki
-#      resource-type: storage
-#      metric: read_count
-#      query:
-#        query: 'count_over_time({resource_type="object_storage_bucket"} | json method="http_method" | method = `GET` [1h])'
-#        interval: PT1H
-#        resource-id-label: resource_id
-#      aggregation:
-#        period: PT1H
-#        operation: SUM
+    - type: pegman
+      resource-type: storage
+      metric: read_count
+      query:
+        query: 'storage:read_count'
+        interval: PT1H
+        resource-id-label: resource_id
+      insights:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+      billing:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
 #    - type: prometheus
 #      resource-type: db
 #      metric: connections
