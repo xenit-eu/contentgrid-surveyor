@@ -142,14 +142,13 @@ public class PullMetricsUseCase implements PullMetrics {
                 ));
 
         AtomicLong metricSize = new AtomicLong();
-        metrics.doOnNext(item -> metricSize.getAndIncrement());
-        metrics.doOnComplete(() -> {
-            log.info("Pulled new metrics from source {} with query '{}' (interval {}): {} datapoints", metricSource,
-                    metricCollectionConfig.query(), timeInterval,
-                    metricSize.get());
-        });
-
-        metrics.buffer(1000)
+        metrics.doOnNext(item -> metricSize.getAndIncrement())
+                .doOnComplete(() -> {
+                    log.info("Pulled new metrics from source {} with query '{}' (interval {}): {} datapoints",
+                            metricSource,
+                            metricCollectionConfig.query(), timeInterval,
+                            metricSize.get());
+                }).buffer(1000)
                 .doOnNext(storeEventCountMetricSpiPort::storeEventMetrics)
                 .blockLast();
 
