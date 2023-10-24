@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.spi.source;
+package com.contentgrid.surveyor.spi.config;
 
 import com.contentgrid.surveyor.values.MetricName;
 import com.contentgrid.surveyor.spi.MetricSourceSystemType;

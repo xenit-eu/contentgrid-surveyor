@@ -2,10 +2,12 @@ package com.contentgrid.surveyor.usecase.pull;
 
 import com.contentgrid.surveyor.api.pull.PullMetrics;
 import com.contentgrid.surveyor.spi.TimeInterval;
+import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
+import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
 import com.contentgrid.surveyor.spi.source.CollectedMetric;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource.CollectionFailedException;
-import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
+import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
 import com.contentgrid.surveyor.spi.storage.EventCountMetric;
 import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.Resource;
@@ -15,9 +17,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
 import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -28,20 +28,22 @@ import reactor.core.publisher.Flux;
 public class PullMetricsUseCase implements PullMetrics {
 
     private final List<? extends EventMetricsSource> metricSources;
-    private final List<MetricCollectionConfig> collectionConfigs;
+    private final FindCollectionConfigurationsSpiPort findCollectionConfigurationsSpiPort;
     private final StoreEventCountMetricSpiPort storeEventCountMetricSpiPort;
     private final LastEventCountMetricSpiPort lastEventCountMetricSpiPort;
 
     @Override
     public void pullMetrics() {
-        for (MetricCollectionConfig collectionConfig : collectionConfigs) {
-            for (EventMetricsSource metricSource : metricSources) {
+        for (EventMetricsSource metricSource : metricSources) {
+            var configs = findCollectionConfigurationsSpiPort.findConfigurationsFor(metricSource.getSystemType());
+            for (var collectionConfig : configs) {
                 var maybeResourceDefinition = metricSource.resourceDefinition(collectionConfig);
                 if (maybeResourceDefinition.isEmpty()) {
                     continue;
                 }
                 var resourceDefinition = maybeResourceDefinition.orElseThrow();
-                var maybeLastEvent = lastEventCountMetricSpiPort.getLastEventCountMetricInterval(resourceDefinition);
+                var maybeLastEvent = lastEventCountMetricSpiPort.getLastEventCountMetricInterval(
+                        resourceDefinition);
 
                 var referenceTime = Instant.now().truncatedTo(ChronoUnit.DAYS);
                 maybeLastEvent.ifPresentOrElse(lastEvent -> {
@@ -98,7 +100,6 @@ public class PullMetricsUseCase implements PullMetrics {
                         log.error("Failed to pull new metrics for {}", resourceDefinition, e);
                     }
                 });
-
             }
 
         }

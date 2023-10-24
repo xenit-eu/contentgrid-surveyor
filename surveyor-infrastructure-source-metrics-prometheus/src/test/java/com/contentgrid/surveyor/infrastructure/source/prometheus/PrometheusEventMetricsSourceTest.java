@@ -8,7 +8,7 @@ import com.contentgrid.surveyor.infrastructure.source.prometheus.test.Prometheus
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.source.CollectedMetric;
-import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
+import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
 import com.contentgrid.surveyor.values.MetricName;
 import com.contentgrid.surveyor.spi.MetricSourceSystemType;
 import com.contentgrid.surveyor.values.ResourceId;

@@ -10,7 +10,7 @@ public interface ResourceRepository extends CrudRepository<ResourceRepository, L
 
     @Query("""
             insert into resource(source_system, resource_type, resource_id, metric_name)
-            values(:#{#resource.sourceSystem}, :#{#resource.resourceType}, :#{#resource.resourceId}, :#{#resource.metricName})
+            values(:#{#resource.sourceSystem.sourceName}, :#{#resource.resourceType.resourceType}, :#{#resource.resourceId.resourceId}, :#{#resource.metricName.name})
             on conflict (source_system, resource_type, resource_id, metric_name) do update SET source_system=resource.source_system -- needs a dummy update to actually return something
             returning id, source_system, resource_type, resource_id, metric_name
             """)
@@ -19,9 +19,9 @@ public interface ResourceRepository extends CrudRepository<ResourceRepository, L
     @Query("""
             select * from resource
                 where
-                    source_system = :#{#sourceSystem}
-                    and resource_type = :#{metricName.type}
-                    and metric_name = :#{metricName}
+                    source_system = :#{#sourceSystem.sourceName}
+                    and resource_type = :#{metricName.type.resourceType}
+                    and metric_name = :#{metricName.name}
             """)
     Stream<ResourceEntity> findAllBySourceSystemAndMetricName(
             SourceName sourceSystem,

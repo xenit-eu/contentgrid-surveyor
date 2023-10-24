@@ -8,7 +8,7 @@ import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.source.CollectedMetric;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
-import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
+import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
 import com.contentgrid.surveyor.spi.MetricSourceSystemType;
 import com.contentgrid.surveyor.values.ResourceId;
 import com.contentgrid.surveyor.values.SourceName;
@@ -70,6 +70,11 @@ public class PegmanEventMetricsSource implements EventMetricsSource {
         return builder.build();
     }
 
+
+    @Override
+    public MetricSourceSystemType getSystemType() {
+        return type;
+    }
 
     @Override
     public Optional<ResourceDefinition> resourceDefinition(MetricCollectionConfig config) {

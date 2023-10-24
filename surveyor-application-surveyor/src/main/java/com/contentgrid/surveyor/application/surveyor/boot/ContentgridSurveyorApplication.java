@@ -7,10 +7,10 @@ import com.contentgrid.surveyor.infrastructure.config.spring.SurveyorSpringConfi
 import com.contentgrid.surveyor.infrastructure.source.pegman.SurveyorSourceMetricsPegmanConfiguration;
 import com.contentgrid.surveyor.infrastructure.storage.jdbc.SurveyorStorageDataJdbcConfiguration;
 import com.contentgrid.surveyor.infrastructure.storage.memory.SurveyorStorageInMemoryConfiguration;
+import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
-import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
 import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.StoreEventCountMetricSpiPort;
@@ -43,11 +43,11 @@ public class ContentgridSurveyorApplication {
     }
 
     @Bean
-    PullMetrics pullMetrics(List<MetricCollectionConfig> collectionConfigs,
+    PullMetrics pullMetrics(FindCollectionConfigurationsSpiPort findCollectionConfigurationsSpiPort,
             List<? extends EventMetricsSource> metricsSources,
             StoreEventCountMetricSpiPort storeEventCountMetricSpiPort,
             LastEventCountMetricSpiPort lastEventCountMetricSpiPort) {
-        return new PullMetricsUseCase(metricsSources, collectionConfigs, storeEventCountMetricSpiPort,
+        return new PullMetricsUseCase(metricsSources, findCollectionConfigurationsSpiPort, storeEventCountMetricSpiPort,
                 lastEventCountMetricSpiPort);
     }
 

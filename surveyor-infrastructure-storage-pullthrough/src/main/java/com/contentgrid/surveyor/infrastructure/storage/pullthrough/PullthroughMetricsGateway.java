@@ -2,9 +2,10 @@ package com.contentgrid.surveyor.infrastructure.storage.pullthrough;
 
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
+import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource.CollectionFailedException;
-import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
+import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
 import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.EventCountMetric;
 import com.contentgrid.surveyor.spi.storage.Resource;
@@ -13,7 +14,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
@@ -21,7 +21,7 @@ import reactor.core.publisher.Flux;
 public class PullthroughMetricsGateway implements AggregateEventCountMetricSpiPort {
 
     private final List<? extends EventMetricsSource> metricSources;
-    private final List<MetricCollectionConfig> collectionConfigs;
+    private final FindCollectionConfigurationsSpiPort findCollectionConfigurationsSpiPort;
 
     @Override
     public Publisher<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
@@ -38,9 +38,11 @@ public class PullthroughMetricsGateway implements AggregateEventCountMetricSpiPo
             throw new IllegalArgumentException("Pullthrough gateway can not aggregate metrics");
         }
 
-        var collectedMetrics = Flux.fromIterable(collectionConfigs)
-                .flatMap(config -> Flux.fromIterable(metricSources)
-                        .map(source -> new ConfigAndSource(config, source))
+        var collectedMetrics = Flux.fromIterable(metricSources)
+                .flatMap(source -> Flux.fromIterable(
+                                        findCollectionConfigurationsSpiPort.findConfigurationsFor(source.getSystemType())
+                                )
+                                .map(config -> new ConfigAndSource(config, source))
                 )
                 .flatMap(configAndSource -> {
                     var maybeDefinition = configAndSource.metricsSource()

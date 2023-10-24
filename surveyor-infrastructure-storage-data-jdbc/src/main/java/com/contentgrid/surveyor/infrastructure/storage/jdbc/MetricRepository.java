@@ -13,9 +13,9 @@ public interface MetricRepository extends Repository<MetricEntity, MetricEntityI
     @Query("""
             select m.* from metric_events m
                 left join resource r on m.resource_id = r.id
-                where r.source_system = :#{#definition.sourceSystem}
-                and r.resource_type = :#{#definition.resourceType}
-                and r.metric_name = :#{#definition.metricName}
+                where r.source_system = :#{#definition.sourceSystem.sourceName}
+                and r.resource_type = :#{#definition.resourceType.resourceType}
+                and r.metric_name = :#{#definition.metricName.name}
                 order by m.end_time desc
                 limit 1
             """)

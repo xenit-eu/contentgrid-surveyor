@@ -17,8 +17,6 @@ public interface FindResourceDefinitionsSpiPort {
                 .toList();
     }
 
-    List<ResourceDefinition> findResourceDefinitions(MetricSourceSystemType systemType);
-
     List<ResourceDefinition> findResourceDefinitions(ResourceType resourceType);
 
     default List<ResourceDefinition> findResourceDefinitions(MetricName metricName) {
