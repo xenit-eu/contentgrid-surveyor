@@ -9,6 +9,9 @@ import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.source.CollectedMetric;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
 import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
+import com.contentgrid.surveyor.spi.MetricSourceSystemType;
+import com.contentgrid.surveyor.values.ResourceId;
+import com.contentgrid.surveyor.values.SourceName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Map;
@@ -39,19 +42,19 @@ public class PegmanEventMetricsSource implements EventMetricsSource {
 
     @ToString.Include
     @NonNull
-    private final String systemName;
+    private final SourceName systemName;
 
     @ToString.Include
     @NonNull
-    private final String type;
+    private final MetricSourceSystemType type;
 
     public PegmanEventMetricsSource(
             WebClient.Builder clientBuilder,
             PegmanApiConfig config,
             HypermediaWebClientConfigurer webClientConfigurer,
             ObjectMapper objectMapper,
-            String systemName,
-            String type
+            SourceName systemName,
+            MetricSourceSystemType type
     ) {
         this(
                 configureClient(clientBuilder, config.andThen(webClientConfigurer::registerHypermediaTypes)),
@@ -71,7 +74,7 @@ public class PegmanEventMetricsSource implements EventMetricsSource {
     @Override
     public Optional<ResourceDefinition> resourceDefinition(MetricCollectionConfig config) {
         if (Objects.equals(config.type(), type)) {
-            return Optional.of(new ResourceDefinition(systemName, config.resourceType(), config.metric()));
+            return Optional.of(new ResourceDefinition(systemName, config.metric()));
         }
         return Optional.empty();
     }
@@ -123,8 +126,8 @@ public class PegmanEventMetricsSource implements EventMetricsSource {
     private CollectedMetric createMetric(MetricCollectionConfig config, PegmanMetric metric,
             MetricMeasuredValue value) {
         return new CollectedMetric(
-                new ResourceDefinition(this.systemName, config.resourceType(), config.metric()),
-                metric.getResource().resourceId(),
+                new ResourceDefinition(this.systemName, config.metric()),
+                ResourceId.of(metric.getResource().resourceId()),
                 TimeInterval.between(value.startTime(), value.endTime()),
                 value.value()
         );

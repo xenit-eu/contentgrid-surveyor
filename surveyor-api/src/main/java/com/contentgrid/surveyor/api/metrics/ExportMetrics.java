@@ -1,5 +1,7 @@
 package com.contentgrid.surveyor.api.metrics;
 
+import com.contentgrid.surveyor.values.MetricName;
+import com.contentgrid.surveyor.values.ResourceType;
 import java.time.Instant;
 import lombok.Builder;
 import lombok.NonNull;
@@ -12,9 +14,7 @@ public interface ExportMetrics {
     @Builder
     record ExportMetricsCommand(
             @NonNull
-            String resourceType,
-            @NonNull
-            String metric,
+            MetricName metric,
             @NonNull
             Instant start,
             @NonNull

@@ -34,17 +34,15 @@ public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, E
 
     @Override
     public Publisher<ExportedMetrics> findMetricsForExport(ExportMetricsCommand command) {
-        var maybeDefinition = findResourceDefinitionsSpiPort.findResourceDefinitions(command.resourceType())
-                .stream()
-                .filter(def -> Objects.equals(def.metricName(), command.metric()))
-                .findAny();
-        if (maybeDefinition.isEmpty()) {
+        var definitions = findResourceDefinitionsSpiPort.findResourceDefinitions(command.metric());
+        if (definitions.isEmpty()) {
             return Flux.empty();
         }
 
         var interval = TimeInterval.between(command.start(), command.end());
 
-        return Flux.from(eventCountMetricSpiPort.findEventCountMetrics(maybeDefinition.orElseThrow(), interval,
+        return Flux.fromIterable(definitions)
+                .flatMap(definition -> eventCountMetricSpiPort.findEventCountMetrics(definition, interval,
                         AggregationConfiguration.builder().finallyDontAggregate()))
                 // Buffering until changed means that there could be multiple sets for the same resource
                 // This should be fine as the response does not assume that there is only a single set for a single resource
@@ -116,9 +114,8 @@ public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, E
         var definition = resource.getDefinition();
         return new Resource(
                 definition.sourceSystem(),
-                definition.resourceType(),
-                resource.getResourceId(),
-                definition.metricName()
+                definition.metricName(),
+                resource.getResourceId()
         );
     }
 

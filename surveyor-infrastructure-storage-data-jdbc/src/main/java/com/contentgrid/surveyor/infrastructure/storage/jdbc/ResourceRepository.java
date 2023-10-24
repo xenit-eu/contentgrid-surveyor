@@ -1,9 +1,10 @@
 package com.contentgrid.surveyor.infrastructure.storage.jdbc;
 
+import com.contentgrid.surveyor.values.MetricName;
+import com.contentgrid.surveyor.values.SourceName;
 import java.util.stream.Stream;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.data.repository.query.QueryByExampleExecutor;
 
 public interface ResourceRepository extends CrudRepository<ResourceRepository, Long> {
 
@@ -15,10 +16,16 @@ public interface ResourceRepository extends CrudRepository<ResourceRepository, L
             """)
     ResourceEntity upsert(ResourceEntity resource);
 
-    Stream<ResourceEntity> findAllBySourceSystemAndResourceTypeAndMetricName(
-            String sourceSystem,
-            String resourceType,
-            String metricName
+    @Query("""
+            select * from resource
+                where
+                    source_system = :#{#sourceSystem}
+                    and resource_type = :#{metricName.type}
+                    and metric_name = :#{metricName}
+            """)
+    Stream<ResourceEntity> findAllBySourceSystemAndMetricName(
+            SourceName sourceSystem,
+            MetricName metricName
     );
 
 }

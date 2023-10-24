@@ -12,6 +12,10 @@ import com.contentgrid.surveyor.api.metrics.Resource;
 import com.contentgrid.surveyor.api.metrics.ResourceMetric;
 import com.contentgrid.surveyor.drivers.web.MetricRepresentationModel.MetricData;
 import com.contentgrid.surveyor.jackson.streaming.generator.DataBufferOutputStream;
+import com.contentgrid.surveyor.values.MetricName;
+import com.contentgrid.surveyor.values.ResourceId;
+import com.contentgrid.surveyor.values.ResourceType;
+import com.contentgrid.surveyor.values.SourceName;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -54,8 +58,7 @@ public class ResourceMetricsController {
             ServerHttpResponse response
     ) {
         ExportMetricsCommand command = ExportMetricsCommand.builder()
-                .resourceType(resourceType)
-                .metric(metric)
+                .metric(MetricName.of(ResourceType.of(resourceType), metric))
                 .start(start)
                 .end(end)
                 .build();
@@ -100,9 +103,9 @@ public class ResourceMetricsController {
             @RequestParam(required = false) Duration step
     ) {
         var command = FindInsightMetricsCommand.builder()
-                .system(system)
-                .resourceType(resourceType)
-                .resourceId(resourceId)
+                .system(SourceName.of(system))
+                .resourceType(ResourceType.of(resourceType))
+                .resourceId(ResourceId.of(resourceId))
                 .start(start)
                 .end(end)
                 .step(step)
@@ -138,9 +141,9 @@ public class ResourceMetricsController {
             @RequestParam(required = false) Instant end
     ) {
         var command = BillingMetricsCommand.builder()
-                .system(system)
-                .resourceType(resourceType)
-                .resourceId(resourceId)
+                .system(SourceName.of(system))
+                .resourceType(ResourceType.of(resourceType))
+                .resourceId(ResourceId.of(resourceId))
                 .start(start)
                 .end(end)
                 .build();

@@ -1,5 +1,7 @@
 package com.contentgrid.surveyor.infrastructure.source.prometheus;
 
+import com.contentgrid.surveyor.spi.MetricSourceSystemType;
+import com.contentgrid.surveyor.values.SourceName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.util.ArrayList;
@@ -44,8 +46,8 @@ public class SurveyorSourceMetricsPrometheusConfiguration {
 
 
     record SurveyorPrometheusSourceProperties(
-            String name,
-            String type,
+            SourceName name,
+            MetricSourceSystemType type,
             URI url,
             Map<String, String> headers,
             String username,

@@ -1,7 +1,9 @@
 package com.contentgrid.surveyor.api.metrics;
 
+import com.contentgrid.surveyor.values.ResourceId;
+import com.contentgrid.surveyor.values.ResourceType;
+import com.contentgrid.surveyor.values.SourceName;
 import java.time.Instant;
-import java.util.Map;
 import lombok.Builder;
 import lombok.NonNull;
 import org.reactivestreams.Publisher;
@@ -13,11 +15,11 @@ public interface BillingMetrics {
     @Builder
     record BillingMetricsCommand(
             @NonNull
-            String system,
+            SourceName system,
             @NonNull
-            String resourceType,
+            ResourceType resourceType,
             @NonNull
-            String resourceId,
+            ResourceId resourceId,
             Instant start,
             Instant end
     ) {

@@ -22,6 +22,7 @@ include 'surveyor-api'
 include 'surveyor-spi'
 
 include 'surveyor-domain'
+include 'surveyor-values'
 
 include 'surveyor-drivers-web'
 include 'surveyor-drivers-schedule'

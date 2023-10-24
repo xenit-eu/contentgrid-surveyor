@@ -15,7 +15,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.reactivestreams.FlowAdapters;
 import org.reactivestreams.Publisher;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -64,9 +63,8 @@ public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiP
             TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
         Map<Long, Resource> resources;
-        try (var resourceStream = resourceRepository.findAllBySourceSystemAndResourceTypeAndMetricName(
+        try (var resourceStream = resourceRepository.findAllBySourceSystemAndMetricName(
                 resourceDefinition.sourceSystem(),
-                resourceDefinition.resourceType(),
                 resourceDefinition.metricName()
         )) {
             resources = resourceStream.collect(Collectors.toUnmodifiableMap(
@@ -74,7 +72,6 @@ public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiP
                     entity -> new Resource(
                             new ResourceDefinition(
                                     entity.getSourceSystem(),
-                                    entity.getResourceType(),
                                     entity.getMetricName()
                             ),
                             entity.getResourceId()

@@ -1,6 +1,10 @@
 package com.contentgrid.surveyor.infrastructure.storage.jdbc;
 
 import com.contentgrid.surveyor.spi.storage.Resource;
+import com.contentgrid.surveyor.values.MetricName;
+import com.contentgrid.surveyor.values.ResourceId;
+import com.contentgrid.surveyor.values.ResourceType;
+import com.contentgrid.surveyor.values.SourceName;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,13 +27,13 @@ public class ResourceEntity {
     Long id;
 
     @NonNull
-    String sourceSystem;
+    SourceName sourceSystem;
 
     @NonNull
-    String resourceType;
+    ResourceType resourceType;
 
     @NonNull
-    String resourceId;
+    ResourceId resourceId;
 
     @NonNull
     String metricName;
@@ -38,8 +42,12 @@ public class ResourceEntity {
         return ResourceEntity.builder()
                 .sourceSystem(resource.getDefinition().sourceSystem())
                 .resourceType(resource.getDefinition().resourceType())
-                .metricName(resource.getDefinition().metricName())
+                .metricName(resource.getDefinition().metricName().name())
                 .resourceId(resource.getResourceId())
                 .build();
+    }
+
+    public MetricName getMetricName() {
+        return MetricName.of(resourceType, metricName);
     }
 }

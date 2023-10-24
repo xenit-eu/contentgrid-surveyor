@@ -10,6 +10,9 @@ import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.source.CollectedMetric;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
 import com.contentgrid.surveyor.spi.source.MetricCollectionConfig;
+import com.contentgrid.surveyor.spi.MetricSourceSystemType;
+import com.contentgrid.surveyor.values.ResourceId;
+import com.contentgrid.surveyor.values.SourceName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Map;
@@ -32,13 +35,13 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
     @ToString.Include
-    private final String systemName;
+    private final SourceName systemName;
     @ToString.Include
-    private final String type;
+    private final MetricSourceSystemType type;
 
     public PrometheusEventMetricsSource(WebClient.Builder clientBuilder, ObjectMapper objectMapper,
-            PrometheusApiConfig config, String systemName,
-            String type) {
+            PrometheusApiConfig config, SourceName systemName,
+            MetricSourceSystemType type) {
         this(configureClient(clientBuilder, config), objectMapper, systemName, type);
     }
 
@@ -52,7 +55,7 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
     @Override
     public Optional<ResourceDefinition> resourceDefinition(MetricCollectionConfig config) {
         if (Objects.equals(config.type(), type)) {
-            return Optional.of(new ResourceDefinition(systemName, config.resourceType(), config.metric()));
+            return Optional.of(new ResourceDefinition(systemName, config.metric()));
         }
         return Optional.empty();
     }
@@ -138,9 +141,9 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
 
     private CollectedMetric createMetric(MetricCollectionConfig config, PrometheusVectorResult prometheusVectorResult) {
         return new CollectedMetric(
-                new ResourceDefinition(this.systemName, config.resourceType(), config.metric()),
-                Objects.requireNonNull(prometheusVectorResult.metric().get(config.resourceIdLabel()),
-                        () -> "Metric is missing label %s".formatted(config.resourceIdLabel())),
+                new ResourceDefinition(this.systemName, config.metric()),
+                ResourceId.of(Objects.requireNonNull(prometheusVectorResult.metric().get(config.resourceIdLabel()),
+                        () -> "Metric is missing label %s".formatted(config.resourceIdLabel()))),
                 TimeInterval.before(prometheusVectorResult.value().timestamp(), config.interval()),
                 prometheusVectorResult.value().value()
         );

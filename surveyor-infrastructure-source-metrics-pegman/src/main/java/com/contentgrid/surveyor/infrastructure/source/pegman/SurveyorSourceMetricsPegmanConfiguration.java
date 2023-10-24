@@ -1,5 +1,7 @@
 package com.contentgrid.surveyor.infrastructure.source.pegman;
 
+import com.contentgrid.surveyor.spi.MetricSourceSystemType;
+import com.contentgrid.surveyor.values.SourceName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.util.ArrayList;
@@ -23,31 +25,31 @@ public class SurveyorSourceMetricsPegmanConfiguration {
 
     @Bean
     List<PegmanEventMetricsSource> pegmanEventMetricsSource(
-            List<SurveyorPegmanSourceProperties> prometheusSourceProperties,
+            List<SurveyorPegmanSourceProperties> pegmanSourceProperties,
             WebClient.Builder webclientBuilder,
             HypermediaWebClientConfigurer webClientConfigurer,
             ObjectMapper objectMapper
     ) {
-        return prometheusSourceProperties.stream()
-                .map(prometheusProperties -> {
+        return pegmanSourceProperties.stream()
+                .map(pegmanProperties -> {
                     var apiConfig = PegmanApiConfig.builder()
-                            .url(prometheusProperties.url())
-                            .headers(Optional.ofNullable(prometheusProperties.headers()).orElse(Map.of()))
-                            .username(prometheusProperties.username())
-                            .password(prometheusProperties.password())
-                            .bearer(prometheusProperties.bearer())
+                            .url(pegmanProperties.url())
+                            .headers(Optional.ofNullable(pegmanProperties.headers()).orElse(Map.of()))
+                            .username(pegmanProperties.username())
+                            .password(pegmanProperties.password())
+                            .bearer(pegmanProperties.bearer())
                             .build();
                     return new PegmanEventMetricsSource(webclientBuilder, apiConfig, webClientConfigurer,
-                            objectMapper, prometheusProperties.name(),
-                            prometheusProperties.type());
+                            objectMapper, pegmanProperties.name(),
+                            pegmanProperties.type());
                 })
                 .toList();
     }
 
 
     record SurveyorPegmanSourceProperties(
-            String name,
-            String type,
+            SourceName name,
+            MetricSourceSystemType type,
             URI url,
             Map<String, String> headers,
             String username,

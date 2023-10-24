@@ -1,5 +1,8 @@
 package com.contentgrid.surveyor.api.metrics;
 
+import com.contentgrid.surveyor.values.ResourceId;
+import com.contentgrid.surveyor.values.ResourceType;
+import com.contentgrid.surveyor.values.SourceName;
 import java.time.Duration;
 import java.time.Instant;
 import lombok.Builder;
@@ -13,11 +16,11 @@ public interface FindInsightMetrics {
     @Builder
     record FindInsightMetricsCommand(
             @NonNull
-            String system,
+            SourceName system,
             @NonNull
-            String resourceType,
+            ResourceType resourceType,
             @NonNull
-            String resourceId,
+            ResourceId resourceId,
             Instant start,
             Instant end,
             Duration step

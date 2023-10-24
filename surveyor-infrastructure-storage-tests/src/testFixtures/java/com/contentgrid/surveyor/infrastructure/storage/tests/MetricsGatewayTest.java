@@ -11,6 +11,10 @@ import com.contentgrid.surveyor.spi.storage.Resource;
 import com.contentgrid.surveyor.spi.storage.StoreEventCountMetricSpiPort;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationOperation;
+import com.contentgrid.surveyor.values.MetricName;
+import com.contentgrid.surveyor.values.ResourceId;
+import com.contentgrid.surveyor.values.ResourceType;
+import com.contentgrid.surveyor.values.SourceName;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
@@ -31,7 +35,13 @@ public abstract class MetricsGatewayTest {
     void storeAndAggregateAveraging() {
         var store = getStoreEventCountMetricPort();
         var aggregate = getAggregateEventCountMetricPort();
-        var resource = new Resource(new ResourceDefinition(UUID.randomUUID().toString(), "x", "y"), "y");
+        var resource = new Resource(
+                new ResourceDefinition(
+                        SourceName.of(UUID.randomUUID().toString()),
+                        MetricName.of(ResourceType.of("x"), "y")
+                ),
+                ResourceId.of("y")
+        );
 
         var startTime = Instant.parse("2020-01-01T00:00:00Z");
         var measureInterval = Duration.of(1, ChronoUnit.MINUTES);
@@ -81,7 +91,13 @@ public abstract class MetricsGatewayTest {
     void storeAndAggregateCounts() {
         var store = getStoreEventCountMetricPort();
         var aggregate = getAggregateEventCountMetricPort();
-        var resource = new Resource(new ResourceDefinition(UUID.randomUUID().toString(), "x", "y"), "y");
+        var resource = new Resource(
+                new ResourceDefinition(
+                        SourceName.of(UUID.randomUUID().toString()),
+                        MetricName.of(ResourceType.of("x"), "y")
+                ),
+                ResourceId.of("y")
+        );
 
         var startTime = Instant.parse("2020-01-01T00:00:00Z");
         var measureInterval = Duration.of(1, ChronoUnit.MINUTES);
