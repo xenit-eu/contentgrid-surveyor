@@ -1,7 +1,7 @@
 package com.contentgrid.surveyor.usecase.metrics;
 
-import com.contentgrid.surveyor.api.metrics.BillingMetrics;
-import com.contentgrid.surveyor.api.metrics.ExportMetrics;
+import com.contentgrid.surveyor.api.metrics.FindBillingMetrics;
+import com.contentgrid.surveyor.api.metrics.FindExportedMetrics;
 import com.contentgrid.surveyor.api.metrics.ExportedMetrics;
 import com.contentgrid.surveyor.api.metrics.FindInsightMetrics;
 import com.contentgrid.surveyor.api.metrics.Metric;
@@ -17,7 +17,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +25,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
-public class FindMetricsUseCase implements FindInsightMetrics, BillingMetrics, ExportMetrics {
+public class FindMetricsUseCase implements FindInsightMetrics, FindBillingMetrics, FindExportedMetrics {
 
     private final FindResourceAggregationConfigurationSpiPort findResourceAggregationConfigurationSpiPort;
     private final AggregateEventCountMetricSpiPort eventCountMetricSpiPort;

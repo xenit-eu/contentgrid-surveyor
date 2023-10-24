@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.NonNull;
 import org.reactivestreams.Publisher;
 
-public interface BillingMetrics {
+public interface FindBillingMetrics {
 
     Publisher<ResourceMetric> findMetricsForBilling(BillingMetricsCommand command);
 

@@ -1,15 +1,14 @@
 package com.contentgrid.surveyor.drivers.web;
 
-import com.contentgrid.surveyor.api.metrics.BillingMetrics;
-import com.contentgrid.surveyor.api.metrics.BillingMetrics.BillingMetricsCommand;
-import com.contentgrid.surveyor.api.metrics.ExportMetrics;
-import com.contentgrid.surveyor.api.metrics.ExportMetrics.ExportMetricsCommand;
+import com.contentgrid.surveyor.api.metrics.FindBillingMetrics;
+import com.contentgrid.surveyor.api.metrics.FindBillingMetrics.BillingMetricsCommand;
+import com.contentgrid.surveyor.api.metrics.FindExportedMetrics;
+import com.contentgrid.surveyor.api.metrics.FindExportedMetrics.ExportMetricsCommand;
 import com.contentgrid.surveyor.api.metrics.ExportedMetrics;
 import com.contentgrid.surveyor.api.metrics.FindInsightMetrics;
 import com.contentgrid.surveyor.api.metrics.FindInsightMetrics.FindInsightMetricsCommand;
 import com.contentgrid.surveyor.api.metrics.Metric;
 import com.contentgrid.surveyor.api.metrics.Resource;
-import com.contentgrid.surveyor.api.metrics.ResourceMetric;
 import com.contentgrid.surveyor.drivers.web.MetricRepresentationModel.MetricData;
 import com.contentgrid.surveyor.jackson.streaming.generator.DataBufferOutputStream;
 import com.contentgrid.surveyor.values.MetricName;
@@ -44,9 +43,9 @@ import reactor.core.publisher.SignalType;
 @RequiredArgsConstructor
 public class ResourceMetricsController {
 
-    private final ExportMetrics exportMetrics;
+    private final FindExportedMetrics findExportedMetrics;
     private final FindInsightMetrics findInsightMetrics;
-    private final BillingMetrics billingMetrics;
+    private final FindBillingMetrics findBillingMetrics;
     private final ObjectMapper objectMapper;
 
     @GetMapping("/metrics/{resourceType}:{metric}")
@@ -62,7 +61,7 @@ public class ResourceMetricsController {
                 .start(start)
                 .end(end)
                 .build();
-        var metrics = exportMetrics.findMetricsForExport(command);
+        var metrics = findExportedMetrics.findMetricsForExport(command);
 
         var dataBuffers = Flux.<DataBuffer>create(sink -> {
             var outputStream = new DataBufferOutputStream(
@@ -148,7 +147,7 @@ public class ResourceMetricsController {
                 .end(end)
                 .build();
 
-        return Flux.from(billingMetrics.findMetricsForBilling(command))
+        return Flux.from(findBillingMetrics.findMetricsForBilling(command))
                 .map(resourceMetric -> new AggregateRepresentationModel(
                         ResourceRepresentationModel.from(resourceMetric.resource()),
                         resourceMetric.metric().startTime(),
