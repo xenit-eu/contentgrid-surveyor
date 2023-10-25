@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.NonNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,8 +47,11 @@ public class SurveyorSourceMetricsPrometheusConfiguration {
 
 
     record SurveyorPrometheusSourceProperties(
+            @NonNull
             SourceName name,
+            @NonNull
             MetricSourceSystemType type,
+            @NonNull
             URI url,
             Map<String, String> headers,
             String username,
