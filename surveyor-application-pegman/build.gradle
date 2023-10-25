@@ -24,8 +24,8 @@ dependencies {
 }
 
 bootBuildImage {
-	imageName = "docker.contentgrid.com/surveyor-pegman:${project.version}"
-	tags = "${project.version}".endsWith('SNAPSHOT') ? ['docker.contentgrid.com/surveyor-pegman:SNAPSHOT'] : null
+	imageName = "ghcr.io/xenit-eu/contentgrid-surveyor-pegman:${project.version}"
+	tags = "${project.version}".endsWith('SNAPSHOT') ? ['ghcr.io/xenit-eu/contentgrid-surveyor-pegman:SNAPSHOT'] : null
 
 	docker {
 		publishRegistry {
