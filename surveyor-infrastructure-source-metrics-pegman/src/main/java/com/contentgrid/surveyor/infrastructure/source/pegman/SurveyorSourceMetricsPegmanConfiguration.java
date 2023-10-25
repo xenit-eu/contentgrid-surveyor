@@ -5,6 +5,7 @@ import com.contentgrid.surveyor.values.SourceName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,18 +21,19 @@ public class SurveyorSourceMetricsPegmanConfiguration {
 
     @Bean
     @ConfigurationProperties(prefix = "surveyor.systems.pegman")
-    List<SurveyorPegmanSourceProperties> surveyorPegmanSourcePropertiesList(){
-        return new ArrayList<>();
+    Map<String, SurveyorPegmanSourceProperties> surveyorPegmanSourcePropertiesList() {
+        return new LinkedHashMap<>();
     }
 
     @Bean
     List<PegmanEventMetricsSource> pegmanEventMetricsSource(
-            List<SurveyorPegmanSourceProperties> pegmanSourceProperties,
+            Map<String, SurveyorPegmanSourceProperties> pegmanSourceProperties,
             WebClient.Builder webclientBuilder,
             HypermediaWebClientConfigurer webClientConfigurer,
             ObjectMapper objectMapper
     ) {
-        return pegmanSourceProperties.stream()
+        return pegmanSourceProperties.values()
+                .stream()
                 .map(pegmanProperties -> {
                     var apiConfig = PegmanApiConfig.builder()
                             .url(pegmanProperties.url())

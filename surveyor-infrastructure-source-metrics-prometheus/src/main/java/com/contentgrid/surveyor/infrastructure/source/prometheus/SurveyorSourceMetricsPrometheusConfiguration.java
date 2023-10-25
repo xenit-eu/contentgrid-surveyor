@@ -5,6 +5,7 @@ import com.contentgrid.surveyor.values.SourceName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,17 +20,17 @@ public class SurveyorSourceMetricsPrometheusConfiguration {
 
     @Bean
     @ConfigurationProperties(prefix = "surveyor.systems.prometheus")
-    List<SurveyorPrometheusSourceProperties> surveyorPrometheusSourcePropertiesList(){
-        return new ArrayList<>();
+    Map<String, SurveyorPrometheusSourceProperties> surveyorPrometheusSourcePropertiesList() {
+        return new LinkedHashMap<>();
     }
 
     @Bean
     List<PrometheusEventMetricsSource> prometheusEventMetricsSource(
-            List<SurveyorPrometheusSourceProperties> prometheusSourceProperties,
+            Map<String, SurveyorPrometheusSourceProperties> prometheusSourceProperties,
             WebClient.Builder webclientBuilder,
             ObjectMapper objectMapper
     ) {
-        return prometheusSourceProperties.stream()
+        return prometheusSourceProperties.values().stream()
                 .map(prometheusProperties -> {
                     var apiConfig = PrometheusApiConfig.builder()
                             .url(prometheusProperties.url())
