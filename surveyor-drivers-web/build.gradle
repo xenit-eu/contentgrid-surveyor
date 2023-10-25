@@ -1,0 +1,20 @@
+plugins {
+    id 'java-library'
+    id 'io.freefair.lombok'
+}
+dependencies {
+    implementation platform(project(':surveyor-dependencies'))
+    implementation 'io.projectreactor:reactor-core'
+    implementation project(':jackson-streaming-parser')
+
+    api project(':surveyor-api')
+
+    implementation('org.springframework.boot:spring-boot-starter-hateoas') {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-web'
+    }
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params'
+    testImplementation 'org.assertj:assertj-core'
+}

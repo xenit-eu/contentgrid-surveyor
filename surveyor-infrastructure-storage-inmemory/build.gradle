@@ -1,0 +1,16 @@
+plugins {
+    id 'java-library'
+    id 'io.freefair.lombok'
+}
+dependencies {
+    implementation platform(project(':surveyor-dependencies'))
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'io.projectreactor:reactor-core'
+
+    api project(':surveyor-spi')
+
+    testImplementation testFixtures(project(':surveyor-infrastructure-storage-tests'))
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params'
+    testImplementation 'org.assertj:assertj-core'
+}

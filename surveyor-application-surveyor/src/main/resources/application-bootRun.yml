@@ -1,0 +1,23 @@
+surveyor:
+  systems:
+    pegman:
+      - name: eu-west-1.contentgrid.cloud
+        type: pegman
+        url: 'http://localhost:9088/'
+
+spring:
+  datasource:
+    url: jdbc:tc:timescaledb:latest-pg14:///surveyor
+
+server:
+  port: 9087
+  error:
+    include-message: always
+
+management:
+  server:
+    port: 9187
+  endpoints:
+    web:
+      exposure:
+        include: "*"

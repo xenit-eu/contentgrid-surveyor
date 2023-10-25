@@ -1,0 +1,100 @@
+surveyor:
+  metrics:
+    - type: pegman
+      resource-type: storage
+      metric: stored_bytes
+      query:
+        query: 'storage:stored_bytes'
+        interval: PT15M
+      insights:
+        - period: PT1H
+          operation: AVERAGE
+        - operation: AVERAGE
+      billing:
+        - period: PT1H
+          operation: AVERAGE
+        - operation: SUM
+    - type: pegman
+      resource-type: storage
+      metric: objects_count
+      query:
+        query: 'storage:objects_count'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: MAX
+        - operation: MAX
+      billing:
+        - period: PT1H
+          operation: MAX
+        - operation: MAX
+    - type: pegman
+      resource-type: storage
+      metric: egress_bytes
+      query:
+        query: 'storage:egress_bytes'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+      billing:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+    - type: pegman
+      resource-type: storage
+      metric: ingress_bytes
+      query:
+        query: 'storage:ingress_bytes'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+      billing:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+    - type: pegman
+      resource-type: storage
+      metric: read_count
+      query:
+        query: 'storage:read_count'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+      billing:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+    - type: pegman
+      resource-type: storage
+      metric: write_count
+      query:
+        query: 'storage:write_count'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+      billing:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+    - type: pegman
+      resource-type: db
+      metric: connections
+      query:
+        query: 'db:connections'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: MAX
+        - operation: MAX
+      billing:
+        - period: PT1H
+          operation: MAX
+        - operation: MAX

@@ -1,0 +1,17 @@
+plugins {
+    id 'java-platform'
+}
+
+javaPlatform {
+    allowDependencies()
+}
+
+dependencies {
+    api platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+    api platform("org.testcontainers:testcontainers-bom:1.19.0")
+
+    constraints {
+        api 'com.jayway.restassured:rest-assured:2.9.0'
+        api 'com.contentgrid.hateoas:contentgrid-hateoas-spring:0.0.1-SNAPSHOT'
+    }
+}

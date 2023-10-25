@@ -1,0 +1,26 @@
+plugins {
+    id 'java-library'
+    id 'io.freefair.lombok'
+}
+
+dependencies {
+    implementation platform(project(':surveyor-dependencies'))
+
+    api project(':surveyor-spi')
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'io.projectreactor:reactor-core'
+
+    runtimeOnly 'org.postgresql:postgresql'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation testFixtures(project(':surveyor-infrastructure-storage-tests'))
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
+}
