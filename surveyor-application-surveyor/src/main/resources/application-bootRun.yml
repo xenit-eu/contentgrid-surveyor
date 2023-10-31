@@ -2,7 +2,7 @@ surveyor:
   systems:
     pegman:
       test:
-        name: eu-west-1.contentgrid.cloud
+        name: sandbox.contentgrid.cloud
         type: pegman
         url: 'http://localhost:9088/'
 
