@@ -4,11 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.EventCountMetric;
-import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.Resource;
-import com.contentgrid.surveyor.spi.storage.StoreEventCountMetricSpiPort;
+import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
+import com.contentgrid.surveyor.spi.storage.Measurement;
+import com.contentgrid.surveyor.spi.storage.LastMeasurementSpiPort;
+import com.contentgrid.surveyor.spi.storage.StoreMeasurementSpiPort;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationOperation;
 import com.contentgrid.surveyor.values.MetricName;
@@ -25,11 +24,11 @@ import reactor.core.publisher.Mono;
 
 public abstract class MetricsGatewayTest {
 
-    protected abstract StoreEventCountMetricSpiPort getStoreEventCountMetricPort();
+    protected abstract StoreMeasurementSpiPort getStoreEventCountMetricPort();
 
-    protected abstract AggregateEventCountMetricSpiPort getAggregateEventCountMetricPort();
+    protected abstract AggregateMeasurementsSpiPort getAggregateEventCountMetricPort();
 
-    protected abstract LastEventCountMetricSpiPort getLastEventCountMetricPort();
+    protected abstract LastMeasurementSpiPort getLastEventCountMetricPort();
 
     @Test
     void storeAndAggregateAveraging() {
@@ -48,7 +47,7 @@ public abstract class MetricsGatewayTest {
         var interval = TimeInterval.after(startTime, measureInterval);
 
         for (int i = 0; i < 600; i++) {
-            store.storeEventMetric(new EventCountMetric(
+            store.storeMeasurement(new Measurement(
                     interval,
                     resource,
                     BigDecimal.valueOf(i)
@@ -56,7 +55,7 @@ public abstract class MetricsGatewayTest {
             interval = interval.nextInterval();
         }
 
-        var aggregation = Mono.from(aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
+        var aggregation = Mono.from(aggregate.getAggregatedMeasurements(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:10:00Z"),
                         Instant.parse("2020-01-01T02:10:00Z")
                 ), AggregationConfiguration.builder()
@@ -75,7 +74,7 @@ public abstract class MetricsGatewayTest {
         // The interval [00:09:00,00:10:00) is taken into account, but the interval [02:09:00,02:10:00( is not taken into account
         // averaged over 1 hour: values 9 -> 68 == 38.5
         //                       values 69 -> 128 == 98.5
-        aggregation = Mono.from(aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
+        aggregation = Mono.from(aggregate.getAggregatedMeasurements(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:09:30Z"),
                         Instant.parse("2020-01-01T02:09:30Z")
                 ), AggregationConfiguration.builder()
@@ -104,7 +103,7 @@ public abstract class MetricsGatewayTest {
         var interval = TimeInterval.after(startTime, measureInterval);
 
         for (int i = 0; i < 600; i++) {
-            store.storeEventMetric(new EventCountMetric(
+            store.storeMeasurement(new Measurement(
                     interval,
                     resource,
                     BigDecimal.valueOf(8)
@@ -112,7 +111,7 @@ public abstract class MetricsGatewayTest {
             interval = interval.nextInterval();
         }
 
-        var aggregation = Mono.from(aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
+        var aggregation = Mono.from(aggregate.getAggregatedMeasurements(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:10:00Z"),
                         Instant.parse("2020-01-01T02:10:00Z")
                 ), AggregationConfiguration.builder()
@@ -125,7 +124,7 @@ public abstract class MetricsGatewayTest {
                 BigDecimal.valueOf(480 * 2).stripTrailingZeros());
 
         // When offset, the calculation remains the same
-        aggregation = Mono.from(aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
+        aggregation = Mono.from(aggregate.getAggregatedMeasurements(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:09:30Z"),
                         Instant.parse("2020-01-01T02:09:30Z")
                 ), AggregationConfiguration.builder()
@@ -137,7 +136,7 @@ public abstract class MetricsGatewayTest {
                 BigDecimal.valueOf(480 * 2).stripTrailingZeros());
 
         // When grouped with a smaller interval, the calculation remains the same
-        aggregation = Mono.from(aggregate.getAggregatedEventCountMetric(resource, TimeInterval.between(
+        aggregation = Mono.from(aggregate.getAggregatedMeasurements(resource, TimeInterval.between(
                         Instant.parse("2020-01-01T00:09:30Z"),
                         Instant.parse("2020-01-01T02:09:30Z")
                 ), AggregationConfiguration.builder()

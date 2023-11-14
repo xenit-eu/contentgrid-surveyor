@@ -8,11 +8,12 @@ dependencies {
 
     api project(':surveyor-spi')
 
-    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
     implementation 'org.flywaydb:flyway-core'
     implementation 'io.projectreactor:reactor-core'
 
     runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'org.postgresql:r2dbc-postgresql'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation testFixtures(project(':surveyor-infrastructure-storage-tests'))

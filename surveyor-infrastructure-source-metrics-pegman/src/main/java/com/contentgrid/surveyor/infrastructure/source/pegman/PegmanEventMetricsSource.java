@@ -8,7 +8,7 @@ import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.source.CollectedMetric;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
-import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
+import com.contentgrid.surveyor.spi.config.MeasurementCollectionConfig;
 import com.contentgrid.surveyor.spi.MetricSourceSystemType;
 import com.contentgrid.surveyor.values.ResourceId;
 import com.contentgrid.surveyor.values.SourceName;
@@ -77,23 +77,22 @@ public class PegmanEventMetricsSource implements EventMetricsSource {
     }
 
     @Override
-    public Optional<ResourceDefinition> resourceDefinition(MetricCollectionConfig config) {
+    public Optional<ResourceDefinition> resourceDefinition(MeasurementCollectionConfig config) {
         if (Objects.equals(config.type(), type)) {
-            return Optional.of(new ResourceDefinition(systemName, config.metric()));
+            return Optional.of(new ResourceDefinition(systemName, config.resourceType(), config.metric()));
         }
         return Optional.empty();
     }
 
     @Override
-    public Publisher<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant startedAt)
-            throws CollectionFailedException {
+    public Publisher<CollectedMetric> collectMetrics(MeasurementCollectionConfig config, Instant startedAt) {
         var interval = TimeInterval.after(startedAt, config.interval());
         return collectMetricsForBackfilling(config, interval);
     }
 
     @Override
-    public Publisher<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, TimeInterval interval)
-            throws CollectionFailedException {
+    public Publisher<CollectedMetric> collectMetricsForBackfilling(MeasurementCollectionConfig config,
+            TimeInterval interval) {
         var recalculatedInterval = interval.alignedToMultipleOf(config.interval());
 
         return webClient.get()
@@ -118,21 +117,23 @@ public class PegmanEventMetricsSource implements EventMetricsSource {
                 .filter(metric -> recalculatedInterval.contains(metric.timeInterval()).isContained());
     }
 
-    private Flux<CollectedMetric> toMetrics(MetricCollectionConfig config, CollectionModel<PegmanMetric> response) {
+    private Flux<CollectedMetric> toMetrics(MeasurementCollectionConfig config,
+            CollectionModel<PegmanMetric> response) {
         return Flux.fromIterable(response)
                 .flatMap(metric -> this.toMetrics(config, metric));
     }
 
-    private Flux<CollectedMetric> toMetrics(MetricCollectionConfig config, PegmanMetric metric) {
+    private Flux<CollectedMetric> toMetrics(MeasurementCollectionConfig config, PegmanMetric metric) {
         return Flux.fromIterable(metric.getData())
                 .map(value -> this.createMetric(config, metric, value));
     }
 
-    private CollectedMetric createMetric(MetricCollectionConfig config, PegmanMetric metric,
+    private CollectedMetric createMetric(MeasurementCollectionConfig config, PegmanMetric metric,
             MetricMeasuredValue value) {
         return new CollectedMetric(
-                new ResourceDefinition(this.systemName, config.metric()),
+                new ResourceDefinition(this.systemName, config.resourceType(), config.metric()),
                 ResourceId.of(metric.getResource().resourceId()),
+                Map.of(),
                 TimeInterval.between(value.startTime(), value.endTime()),
                 value.value()
         );

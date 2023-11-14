@@ -4,7 +4,7 @@ import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import java.time.Duration;
 
-public interface FindResourceAggregationConfigurationSpiPort {
+public interface FindMeasurementAggregationConfigurationSpiPort {
 
     AggregationConfiguration getInsightsAggregationConfiguration(ResourceDefinition resourceDefinition,
             Duration aggregationSize);

@@ -4,5 +4,5 @@ import com.contentgrid.surveyor.spi.MetricSourceSystemType;
 import java.util.List;
 
 public interface FindCollectionConfigurationsSpiPort {
-    List<MetricCollectionConfig> findConfigurationsFor(MetricSourceSystemType sourceSystemType);
+    List<MeasurementCollectionConfig> findConfigurationsFor(MetricSourceSystemType sourceSystemType);
 }

@@ -9,7 +9,7 @@ import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.source.CollectedMetric;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
-import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
+import com.contentgrid.surveyor.spi.config.MeasurementCollectionConfig;
 import com.contentgrid.surveyor.spi.MetricSourceSystemType;
 import com.contentgrid.surveyor.values.ResourceId;
 import com.contentgrid.surveyor.values.SourceName;
@@ -58,15 +58,15 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
     }
 
     @Override
-    public Optional<ResourceDefinition> resourceDefinition(MetricCollectionConfig config) {
+    public Optional<ResourceDefinition> resourceDefinition(MeasurementCollectionConfig config) {
         if (Objects.equals(config.type(), type)) {
-            return Optional.of(new ResourceDefinition(systemName, config.metric()));
+            return Optional.of(new ResourceDefinition(systemName, config.resourceType(), config.metric()));
         }
         return Optional.empty();
     }
 
     @Override
-    public Publisher<CollectedMetric> collectMetrics(MetricCollectionConfig config, Instant startedAt) {
+    public Publisher<CollectedMetric> collectMetrics(MeasurementCollectionConfig config, Instant startedAt) {
         // Prometheus range queries are covering the period *before* the time they are queried
         // So, a range query [1h] at 12:00 covers data from 11:00 -> 12:00
         var endTime = startedAt.plus(config.interval());
@@ -80,6 +80,9 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
                         ))
                 )
                 .exchangeToFlux(response -> {
+                    if (response.statusCode().isError()) {
+                        return response.createException().flatMapMany(Flux::error);
+                    }
                     return response.body((httpResponse, context) -> JsonStreamParser.parse(httpResponse.getBody(),
                             new PrometheusResultAssembler<>(objectMapper, PrometheusVectorResult.class),
                             objectMapper));
@@ -88,8 +91,8 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
     }
 
     @Override
-    public Publisher<CollectedMetric> collectMetricsForBackfilling(MetricCollectionConfig config, TimeInterval interval)
-            throws CollectionFailedException {
+    public Publisher<CollectedMetric> collectMetricsForBackfilling(MeasurementCollectionConfig config,
+            TimeInterval interval) {
         var recalculatedInterval = interval.alignedToMultipleOf(config.interval());
         // Prometheus range queries are covering the period *before* the time they are queried
         // So, a range query [1h] at 12:00 covers data from 11:00 -> 12:00
@@ -111,6 +114,9 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
                         ))
                 )
                 .exchangeToFlux(response -> {
+                    if (response.statusCode().isError()) {
+                        return response.createException().flatMapMany(Flux::error);
+                    }
                     return response.body((httpResponse, context) -> JsonStreamParser.parse(httpResponse.getBody(),
                             new PrometheusResultAssembler<>(objectMapper, PrometheusMatrixResult.class),
                             objectMapper));
@@ -119,7 +125,7 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
                 .filter(metric -> recalculatedInterval.contains(metric.timeInterval()).isContained());
     }
 
-    private Flux<CollectedMetric> handleAssembly(MetricCollectionConfig config,
+    private Flux<CollectedMetric> handleAssembly(MeasurementCollectionConfig config,
             PrometheusResultAssembler.AssemblyResult<?> result) {
         if (result instanceof PrometheusResultAssembler<?>.ErrorAssemblyResult error) {
             return Flux.error(new CollectionFailedException(
@@ -134,7 +140,7 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
         }
     }
 
-    private Flux<CollectedMetric> toMetrics(MetricCollectionConfig config, PrometheusResult data) {
+    private Flux<CollectedMetric> toMetrics(MeasurementCollectionConfig config, PrometheusResult data) {
         if (data instanceof PrometheusVectorResult vector) {
             return Flux.just(this.createMetric(config, vector));
         } else if (data instanceof PrometheusMatrixResult matrix) {
@@ -144,11 +150,13 @@ public class PrometheusEventMetricsSource implements EventMetricsSource {
         return Flux.error(new CollectionFailedException("Response data is not vector or matrix"));
     }
 
-    private CollectedMetric createMetric(MetricCollectionConfig config, PrometheusVectorResult prometheusVectorResult) {
+    private CollectedMetric createMetric(MeasurementCollectionConfig config,
+            PrometheusVectorResult prometheusVectorResult) {
         return new CollectedMetric(
-                new ResourceDefinition(this.systemName, config.metric()),
+                new ResourceDefinition(this.systemName, config.resourceType(), config.metric()),
                 ResourceId.of(Objects.requireNonNull(prometheusVectorResult.metric().get(config.resourceIdLabel()),
                         () -> "Metric is missing label %s".formatted(config.resourceIdLabel()))),
+                Map.of(),
                 TimeInterval.before(prometheusVectorResult.value().timestamp(), config.interval()),
                 prometheusVectorResult.value().value()
         );

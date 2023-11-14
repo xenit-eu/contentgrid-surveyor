@@ -18,7 +18,7 @@ public class ResourceRepresentationModel extends RepresentationModel<ResourceRep
     static ResourceRepresentationModel from(Resource resource) {
         return new ResourceRepresentationModel(
                 resource.system().sourceName(),
-                resource.metric().type().resourceType(),
+                resource.resourceType().resourceType(),
                 resource.metric().name(),
                 resource.resourceId().resourceId()
         );

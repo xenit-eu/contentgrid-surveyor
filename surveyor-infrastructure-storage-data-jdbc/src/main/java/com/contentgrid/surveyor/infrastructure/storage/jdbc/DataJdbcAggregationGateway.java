@@ -1,109 +1,94 @@
 package com.contentgrid.surveyor.infrastructure.storage.jdbc;
 
 
+import com.contentgrid.surveyor.infrastructure.storage.jdbc.MetricRepository.MetricAndResourceIdentityView;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.EventCountMetric;
-import com.contentgrid.surveyor.spi.storage.Resource;
+import com.contentgrid.surveyor.spi.resources.Metric;
+import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
+import com.contentgrid.surveyor.spi.storage.Measurement;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationOperation;
+import io.r2dbc.spi.Readable;
+import io.r2dbc.spi.Row;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.reactivestreams.Publisher;
 import org.springframework.core.convert.ConversionService;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
-public class DataJdbcAggregationGateway implements AggregateEventCountMetricSpiPort {
+public class DataJdbcAggregationGateway implements AggregateMeasurementsSpiPort {
 
-    private final ResourceRepository resourceRepository;
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final MetricRepository metricRepository;
+    private final DatabaseClient databaseClient;
     private final ConversionService conversionService;
 
     @Override
-    public Publisher<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
+    public Flux<Measurement> findMeasurements(Metric resource, TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
-        var resourceEntity = resourceRepository.upsert(ResourceEntity.from(resource));
-        var query = buildQuery(aggregationConfiguration, """
-                select * from metric_events
-                    where resource_id = :resourceId
+        var query = databaseClient.sql(() -> buildQuery(aggregationConfiguration, """
+                select * from measurements
+                    where metric_id = :metricId
                     and end_time > :startTime and end_time <= :endTime
-                """);
+                """));
+        return metricRepository.find(resource)
+                .flatMapMany(metricEntity -> {
+                    return query.bind("metricId", metricEntity.id())
+                            .bind("startTime", interval.getStartTime())
+                            .bind("endTime", interval.getEndTime())
+                            .map((rs) -> createMeasurement(resource, rs))
+                            .all();
+                });
+    }
 
-        var stream = jdbcTemplate.queryForStream(
-                query,
-                Map.of(
-                        "resourceId", resourceEntity.getId(),
-                        "startTime", conversionService.convert(interval.getStartTime(), Timestamp.class),
-                        "endTime", conversionService.convert(interval.getEndTime(), Timestamp.class)
+    private Measurement createMeasurement(Metric resource, Readable rs) {
+        return new Measurement(
+                TimeInterval.between(
+                        conversionService.convert(rs.get("start_time", Timestamp.class),
+                                Instant.class),
+                        conversionService.convert(rs.get("end_time", Timestamp.class),
+                                Instant.class)
                 ),
-                (rs, rowNum) -> new EventCountMetric(
-                        TimeInterval.between(
-                                conversionService.convert(rs.getTimestamp("start_time"), Instant.class),
-                                conversionService.convert(rs.getTimestamp("end_time"), Instant.class)
-                        ),
-                        resource,
-                        rs.getBigDecimal("value")
-                )
+                resource,
+                rs.get("value", BigDecimal.class)
         );
-        return Flux.fromStream(stream);
     }
 
     @Override
     @Transactional
-    public Publisher<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition,
+    public Flux<Measurement> findMeasurements(ResourceDefinition resourceDefinition,
             TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
-        Map<Long, Resource> resources;
-        try (var resourceStream = resourceRepository.findAllBySourceSystemAndMetricName(
-                resourceDefinition.sourceSystem(),
-                resourceDefinition.metricName()
-        )) {
-            resources = resourceStream.collect(Collectors.toUnmodifiableMap(
-                    ResourceEntity::getId,
-                    entity -> new Resource(
-                            new ResourceDefinition(
-                                    entity.getSourceSystem(),
-                                    entity.getMetricName()
-                            ),
-                            entity.getResourceId()
-                    )
-            ));
-        }
-
-        var query = buildQuery(aggregationConfiguration, """
-                select * from metric_events
-                    where resource_id IN(:resourceIds)
-                    and end_time > :startTime and end_time <= :endTime
-                """);
-
-        var stream = jdbcTemplate.queryForStream(
-                query,
-                Map.of(
-                        "resourceIds", resources.keySet(),
-                        "startTime", conversionService.convert(interval.getStartTime(), Timestamp.class),
-                        "endTime", conversionService.convert(interval.getEndTime(), Timestamp.class)
-                ),
-                (rs, rowNum) -> new EventCountMetric(
-                        TimeInterval.between(
-                                conversionService.convert(rs.getTimestamp("start_time"), Instant.class),
-                                conversionService.convert(rs.getTimestamp("end_time"), Instant.class)
-                        ),
-                        resources.get(rs.getLong("resource_id")),
-                        rs.getBigDecimal("value")
-                )
-        );
-
-        return Flux.fromStream(stream);
-
+        var query = databaseClient.sql(() -> buildQuery(aggregationConfiguration, """
+                        select * from measurements m
+                            where metric_id IN(:metricIds)
+                            and end_time > :startTime and end_time <= :endTime
+                        """))
+                .bind("startTime", interval.getStartTime())
+                .bind("endTime", interval.getEndTime());
+        return metricRepository.findAllByResourceDefinition(resourceDefinition)
+                .buffer(100)
+                .map(metricEntities -> metricEntities.stream()
+                        .collect(Collectors.toMap(MetricAndResourceIdentityView::id, Function.identity())))
+                .flatMap(metricEntities -> {
+                    return query
+                            .bind("metricIds", metricEntities.keySet())
+                            .map((rs) -> {
+                                var metricEntity = metricEntities.get(rs.get("metric_id", Long.class));
+                                var metric = metricEntity.toDomain();
+                                return createMeasurement(metric, rs);
+                            })
+                            .all();
+                });
     }
 
     private String buildQuery(AggregationConfiguration aggregationConfiguration, String baseCase) {

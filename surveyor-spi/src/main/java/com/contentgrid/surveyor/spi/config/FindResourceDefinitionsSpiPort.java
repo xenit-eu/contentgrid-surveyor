@@ -2,7 +2,6 @@ package com.contentgrid.surveyor.spi.config;
 
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.values.MetricName;
-import com.contentgrid.surveyor.spi.MetricSourceSystemType;
 import com.contentgrid.surveyor.values.ResourceType;
 import com.contentgrid.surveyor.values.SourceName;
 import java.util.List;
@@ -19,8 +18,8 @@ public interface FindResourceDefinitionsSpiPort {
 
     List<ResourceDefinition> findResourceDefinitions(ResourceType resourceType);
 
-    default List<ResourceDefinition> findResourceDefinitions(MetricName metricName) {
-        return findResourceDefinitions(metricName.type())
+    default List<ResourceDefinition> findResourceDefinitions(ResourceType resourceType, MetricName metricName) {
+        return findResourceDefinitions(resourceType)
                 .stream()
                 .filter(def -> Objects.equals(def.metricName(), metricName))
                 .toList();

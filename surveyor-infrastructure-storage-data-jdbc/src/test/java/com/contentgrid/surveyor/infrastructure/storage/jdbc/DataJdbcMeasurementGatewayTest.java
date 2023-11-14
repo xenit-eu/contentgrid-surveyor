@@ -1,9 +1,9 @@
 package com.contentgrid.surveyor.infrastructure.storage.jdbc;
 
 import com.contentgrid.surveyor.infrastructure.storage.tests.MetricsGatewayTest;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.StoreEventCountMetricSpiPort;
+import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
+import com.contentgrid.surveyor.spi.storage.LastMeasurementSpiPort;
+import com.contentgrid.surveyor.spi.storage.StoreMeasurementSpiPort;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.jdbc.DataJdbcTest;
@@ -15,13 +15,13 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Getter
-class DataJdbcMetricsGatewayTest extends MetricsGatewayTest {
+class DataJdbcMeasurementGatewayTest extends MetricsGatewayTest {
 
     @Autowired
-    private StoreEventCountMetricSpiPort storeEventCountMetricPort;
+    private StoreMeasurementSpiPort storeEventCountMetricPort;
     @Autowired
-    private AggregateEventCountMetricSpiPort aggregateEventCountMetricPort;
+    private AggregateMeasurementsSpiPort aggregateEventCountMetricPort;
     @Autowired
-    private LastEventCountMetricSpiPort lastEventCountMetricPort;
+    private LastMeasurementSpiPort lastEventCountMetricPort;
 
 }

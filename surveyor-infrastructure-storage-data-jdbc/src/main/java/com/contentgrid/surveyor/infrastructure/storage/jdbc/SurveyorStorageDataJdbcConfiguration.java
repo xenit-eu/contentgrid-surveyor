@@ -4,48 +4,43 @@ import com.contentgrid.surveyor.values.MetricName;
 import com.contentgrid.surveyor.values.ResourceId;
 import com.contentgrid.surveyor.values.ResourceType;
 import com.contentgrid.surveyor.values.SourceName;
-import java.util.List;
+import io.r2dbc.spi.ConnectionFactory;
+import io.r2dbc.spi.ConnectionFactoryOptions;
+import io.r2dbc.spi.Option;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.flyway.FlywayConnectionDetails;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.JdbcConnectionDetails;
+import org.springframework.boot.autoconfigure.r2dbc.R2dbcConnectionDetails;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.convert.ReadingConverter;
 import org.springframework.data.convert.WritingConverter;
-import org.springframework.data.jdbc.core.convert.JdbcCustomConversions;
-import org.springframework.data.jdbc.repository.config.AbstractJdbcConfiguration;
-import org.springframework.data.jdbc.repository.config.EnableJdbcRepositories;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.data.r2dbc.convert.R2dbcConverter;
+import org.springframework.data.r2dbc.convert.R2dbcCustomConversions;
+import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
+import org.springframework.r2dbc.core.DatabaseClient;
 
-@EnableJdbcRepositories(basePackageClasses = SurveyorStorageDataJdbcConfiguration.class)
+@EnableR2dbcRepositories(basePackageClasses = SurveyorStorageDataJdbcConfiguration.class)
 @Configuration(proxyBeanMethods = false)
-public class SurveyorStorageDataJdbcConfiguration extends AbstractJdbcConfiguration {
+public class SurveyorStorageDataJdbcConfiguration {
 
     @Bean
-    DataJdbcMetricsGateway dataJdbcMetricsGateway(ResourceRepository resourceRepository,
-            MetricRepository metricRepository) {
-        return new DataJdbcMetricsGateway(resourceRepository, metricRepository);
+    DataJdbcMeasurementGateway dataJdbcMetricsGateway(ResourceIdentityRepository resourceIdentityRepository,
+            MetricRepository metricRepository,
+            MeasurementRepository measurementRepository) {
+        return new DataJdbcMeasurementGateway(resourceIdentityRepository, metricRepository, measurementRepository);
     }
 
     @Bean
-    DataJdbcAggregationGateway dataJdbcAggregationGateway(ResourceRepository resourceRepository,
-            NamedParameterJdbcTemplate jdbcTemplate, JdbcCustomConversions customConversions) {
+    DataJdbcAggregationGateway dataJdbcAggregationGateway(MetricRepository metricRepository,
+            DatabaseClient databaseClient, R2dbcCustomConversions customConversions) {
         var conversionService = new DefaultConversionService();
         customConversions.registerConvertersIn(conversionService);
-        return new DataJdbcAggregationGateway(resourceRepository, jdbcTemplate, conversionService);
-    }
-
-
-    @Override
-    protected List<?> userConverters() {
-        return List.of(
-                new SourceNameToStringConverter(),
-                new StringToSourceNameConverter(),
-                new MetricNameToStringConverter(),
-                new ResourceTypeToStringConverter(),
-                new StringToResourceTypeConverter(),
-                new ResourceIdToStringConverter(),
-                new StringToResourceIdConverter()
-        );
+        return new DataJdbcAggregationGateway(metricRepository, databaseClient, conversionService);
     }
 
     @WritingConverter

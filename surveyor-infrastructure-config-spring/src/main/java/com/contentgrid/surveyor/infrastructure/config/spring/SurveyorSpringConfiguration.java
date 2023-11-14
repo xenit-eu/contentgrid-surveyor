@@ -6,7 +6,7 @@ import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
-import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
+import com.contentgrid.surveyor.spi.config.MeasurementCollectionConfig;
 import com.contentgrid.surveyor.spi.MetricSourceSystemType;
 import com.contentgrid.surveyor.values.ResourceType;
 import java.util.List;
@@ -48,7 +48,7 @@ public class SurveyorSpringConfiguration {
             return metricsSources.stream()
                     .flatMap(metricsSource -> findCollectionConfigurationsSpiPort.findConfigurationsFor(
                                     metricsSource.getSystemType()).stream()
-                            .filter(config -> Objects.equals(config.metric().type(), resourceType))
+                            .filter(config -> Objects.equals(config.resourceType(), resourceType))
                             .flatMap(config -> metricsSource.resourceDefinition(config).stream())
                     )
                     .toList();
@@ -61,16 +61,17 @@ public class SurveyorSpringConfiguration {
         private final List<SurveyorMetricProperties> properties;
 
         @Override
-        public List<MetricCollectionConfig> findConfigurationsFor(MetricSourceSystemType sourceSystemType) {
+        public List<MeasurementCollectionConfig> findConfigurationsFor(MetricSourceSystemType sourceSystemType) {
             return properties.stream()
                     .filter(props -> Objects.equals(props.type(), sourceSystemType))
                     .map(this::createConfig)
                     .toList();
         }
 
-        private MetricCollectionConfig createConfig(SurveyorMetricProperties properties) {
-            return MetricCollectionConfig.builder()
+        private MeasurementCollectionConfig createConfig(SurveyorMetricProperties properties) {
+            return MeasurementCollectionConfig.builder()
                     .type(properties.type())
+                    .resourceType(properties.resourceType())
                     .metric(properties.metric())
                     .interval(properties.query().interval())
                     .query(properties.query().query())

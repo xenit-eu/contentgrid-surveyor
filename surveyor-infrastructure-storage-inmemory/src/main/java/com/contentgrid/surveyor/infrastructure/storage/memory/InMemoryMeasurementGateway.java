@@ -2,11 +2,12 @@ package com.contentgrid.surveyor.infrastructure.storage.memory;
 
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.EventCountMetric;
-import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.Resource;
-import com.contentgrid.surveyor.spi.storage.StoreEventCountMetricSpiPort;
+import com.contentgrid.surveyor.spi.resources.CreateMetricSpiPort;
+import com.contentgrid.surveyor.spi.resources.Metric;
+import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
+import com.contentgrid.surveyor.spi.storage.Measurement;
+import com.contentgrid.surveyor.spi.storage.LastMeasurementSpiPort;
+import com.contentgrid.surveyor.spi.storage.StoreMeasurementSpiPort;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationOperation;
 import java.math.BigDecimal;
@@ -26,73 +27,82 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import org.reactivestreams.Publisher;
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-public class InMemoryMetricsGateway implements StoreEventCountMetricSpiPort,
-        AggregateEventCountMetricSpiPort,
-        LastEventCountMetricSpiPort {
+@RequiredArgsConstructor
+public class InMemoryMeasurementGateway implements StoreMeasurementSpiPort,
+        AggregateMeasurementsSpiPort,
+        LastMeasurementSpiPort {
 
-    private final Map<Resource, List<EventCountMetric>> eventCountMetrics = new HashMap<>();
+    private final Map<Metric, List<Measurement>> eventCountMetrics = new HashMap<>();
     private final Map<ResourceDefinition, TimeInterval> lastApplied = new HashMap<>();
+    private final CreateMetricSpiPort createMetricSpiPort;
 
-    @Override
-    public Publisher<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
-            AggregationConfiguration aggregationConfiguration) {
-        var metrics = getMetricsInInterval(resource, interval);
-        return Flux.fromStream(bucketEventCountMetricsRecursive(metrics, resource, interval, aggregationConfiguration));
+    public InMemoryMeasurementGateway() {
+        this(resource -> {
+            return Mono.empty();
+        });
     }
 
     @Override
-    public Publisher<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition,
+    public Flux<Measurement> findMeasurements(Metric metric, TimeInterval interval,
+            AggregationConfiguration aggregationConfiguration) {
+        var metrics = getMetricsInInterval(metric, interval);
+        return Flux.fromStream(bucketEventCountMetricsRecursive(metrics, metric, interval, aggregationConfiguration));
+    }
+
+    @Override
+    public Flux<Measurement> findMeasurements(ResourceDefinition resourceDefinition,
             TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
 
-        var resources = eventCountMetrics.keySet().stream()
-                .filter(resource -> Objects.equals(resource.getDefinition(), resourceDefinition));
+        var metrics = eventCountMetrics.keySet().stream()
+                .filter(resource -> Objects.equals(resource.getResourceDefinition(), resourceDefinition));
 
-        return Flux.fromStream(resources
+        return Flux.fromStream(metrics
                 .flatMap(
-                        resource -> bucketEventCountMetricsRecursive(
-                                getMetricsInInterval(resource, interval),
-                                resource,
+                        metric -> bucketEventCountMetricsRecursive(
+                                getMetricsInInterval(metric, interval),
+                                metric,
                                 interval,
                                 aggregationConfiguration
                         )
                 ));
     }
 
-    private Stream<EventCountMetric> bucketEventCountMetricsRecursive(
-            Stream<EventCountMetric> metrics,
-            Resource resource,
+    private Stream<Measurement> bucketEventCountMetricsRecursive(
+            Stream<Measurement> measurements,
+            Metric metric,
             TimeInterval timeInterval,
             AggregationConfiguration aggregationConfiguration
     ) {
         if (aggregationConfiguration.isEmpty()) {
-            return metrics;
+            return measurements;
         }
         var split = aggregationConfiguration.splitLeft();
         var firstOp = split.operation();
 
         var aggregatedMetrics = firstOp.perform(bucketingOperation -> {
-                    return metrics
+                    return measurements
                             .collect(Collectors.groupingBy(
-                                    metric -> bucketingKey(bucketingOperation.bucket(),
-                                            metric.getMeasureInterval().getEndTime(), timeInterval.getStartTime()),
-                                    groupingCollector(resource, bucketingOperation.operation())
+                                    measurement -> bucketingKey(bucketingOperation.bucket(),
+                                            measurement.getMeasureInterval().getEndTime(), timeInterval.getStartTime()),
+                                    groupingCollector(metric, bucketingOperation.operation())
                             ))
                             .values()
                             .stream()
                             .flatMap(Optional::stream);
                 },
                 finishingOperation -> {
-                    return metrics.collect(groupingCollector(resource, finishingOperation.operation())).stream();
+                    return measurements.collect(groupingCollector(metric, finishingOperation.operation())).stream();
                 }
         );
 
         return bucketEventCountMetricsRecursive(
                 aggregatedMetrics,
-                resource,
+                metric,
                 timeInterval,
                 split
         );
@@ -109,22 +119,22 @@ public class InMemoryMetricsGateway implements StoreEventCountMetricSpiPort,
         return bucketKey;
     }
 
-    private Collector<EventCountMetric, ?, Optional<EventCountMetric>> groupingCollector(Resource resource,
+    private Collector<Measurement, ?, Optional<Measurement>> groupingCollector(Metric metric,
             AggregationOperation aggregationOperation) {
         return Collectors.teeing(
-                Collectors.mapping(EventCountMetric::getMeasureInterval,
-                        Collectors.reducing(InMemoryMetricsGateway::merge)),
-                Collectors.mapping(EventCountMetric::getValue, collectorFor(aggregationOperation)),
+                Collectors.mapping(Measurement::getMeasureInterval,
+                        Collectors.reducing(InMemoryMeasurementGateway::merge)),
+                Collectors.mapping(Measurement::getValue, collectorFor(aggregationOperation)),
                 (maybeMergedInterval, maybeValue) -> maybeMergedInterval.flatMap(
                         mergedInterval -> maybeValue.map(
-                                value -> new EventCountMetric(mergedInterval, resource,
+                                value -> new Measurement(mergedInterval, metric,
                                         value)))
         );
     }
 
-    private Stream<EventCountMetric> getMetricsInInterval(Resource resource, TimeInterval groupInterval) {
-        return List.copyOf(eventCountMetrics.getOrDefault(resource, List.of())).stream()
-                .filter(m -> Objects.equals(m.getResource(), resource))
+    private Stream<Measurement> getMetricsInInterval(Metric metric, TimeInterval groupInterval) {
+        return List.copyOf(eventCountMetrics.getOrDefault(metric, List.of())).stream()
+                .filter(m -> Objects.equals(m.getMetric(), metric))
                 .filter(m -> {
                     var endTime = m.getMeasureInterval().getEndTime();
                     return groupInterval.getStartTime().isBefore(endTime) && (
@@ -167,19 +177,24 @@ public class InMemoryMetricsGateway implements StoreEventCountMetricSpiPort,
     }
 
     @Override
-    public void storeEventMetric(EventCountMetric metric) {
-        eventCountMetrics.computeIfAbsent(metric.getResource(), _key -> new LinkedList<>()).add(metric);
-        lastApplied.compute(metric.getResource().getDefinition(), (_key, interval) -> {
-            if (interval == null || interval.getEndTime().isBefore(metric.getMeasureInterval().getEndTime())) {
-                return metric.getMeasureInterval();
-            }
-            return interval;
-        });
+    public Mono<Void> storeMeasurement(Measurement measurement) {
+        return createMetricSpiPort.createMetric(measurement.getMetric())
+                .then(Mono.fromRunnable(() -> {
+                    eventCountMetrics.computeIfAbsent(measurement.getMetric(), _key -> new LinkedList<>())
+                            .add(measurement);
+                    lastApplied.compute(measurement.getMetric().getResourceDefinition(), (_key, interval) -> {
+                        if (interval == null || interval.getEndTime()
+                                .isBefore(measurement.getMeasureInterval().getEndTime())) {
+                            return measurement.getMeasureInterval();
+                        }
+                        return interval;
+                    });
+                }));
     }
 
     @Override
-    public Optional<TimeInterval> getLastEventCountMetricInterval(ResourceDefinition resourceDefinition) {
-        return Optional.ofNullable(lastApplied.get(resourceDefinition));
+    public Mono<TimeInterval> getLastMeasurementInterval(ResourceDefinition resourceDefinition) {
+        return Mono.justOrEmpty(lastApplied.get(resourceDefinition));
     }
 
     @AllArgsConstructor(access = AccessLevel.PRIVATE)

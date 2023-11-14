@@ -20,7 +20,7 @@ dependencies {
 
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
-	developmentOnly 'org.testcontainers:postgresql'
+	developmentOnly project(':surveyor-testcontainers')
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
@@ -43,4 +43,5 @@ bootBuildImage {
 
 bootRun {
 	args = ["--spring.profiles.active=bootRun"]
+//	args = ["--spring.profiles.active=bootRun,testcontainers"]
 }

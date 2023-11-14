@@ -3,35 +3,33 @@ package com.contentgrid.surveyor.infrastructure.storage.pullthrough;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
+import com.contentgrid.surveyor.spi.resources.Metric;
 import com.contentgrid.surveyor.spi.source.EventMetricsSource;
-import com.contentgrid.surveyor.spi.source.EventMetricsSource.CollectionFailedException;
-import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.EventCountMetric;
-import com.contentgrid.surveyor.spi.storage.Resource;
+import com.contentgrid.surveyor.spi.config.MeasurementCollectionConfig;
+import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
+import com.contentgrid.surveyor.spi.storage.Measurement;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
-public class PullthroughMetricsGateway implements AggregateEventCountMetricSpiPort {
+public class PullthroughMetricsGateway implements AggregateMeasurementsSpiPort {
 
     private final List<? extends EventMetricsSource> metricSources;
     private final FindCollectionConfigurationsSpiPort findCollectionConfigurationsSpiPort;
 
     @Override
-    public Publisher<EventCountMetric> findEventCountMetrics(Resource resource, TimeInterval interval,
+    public Flux<Measurement> findMeasurements(Metric metric, TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
-        return Flux.from(findEventCountMetrics(resource.getDefinition(), interval, aggregationConfiguration))
-                .filter(metric -> Objects.equals(metric.getResource(), resource));
+        return Flux.from(findMeasurements(metric.getResourceDefinition(), interval, aggregationConfiguration))
+                .filter(measurement -> Objects.equals(measurement.getMetric(), metric));
     }
 
     @Override
-    public Publisher<EventCountMetric> findEventCountMetrics(ResourceDefinition resourceDefinition,
+    public Flux<Measurement> findMeasurements(ResourceDefinition resourceDefinition,
             TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
         if (!aggregationConfiguration.isEmpty()) {
@@ -50,26 +48,22 @@ public class PullthroughMetricsGateway implements AggregateEventCountMetricSpiPo
                             .filter(Predicate.isEqual(resourceDefinition));
 
                     if (maybeDefinition.isPresent()) {
-                        try {
-                            return configAndSource.metricsSource()
-                                    .collectMetricsForBackfilling(configAndSource.config(), interval);
-                        } catch (CollectionFailedException e) {
-                            return Flux.error(e);
-                        }
+                        return configAndSource.metricsSource()
+                                .collectMetricsForBackfilling(configAndSource.config(), interval);
                     }
                     return Flux.empty();
                 });
 
         return collectedMetrics
-                .map(collected -> new EventCountMetric(
+                .map(collected -> new Measurement(
                         collected.timeInterval(),
-                        new Resource(collected.resourceDefinition(), collected.resourceId()),
+                        collected.resourceDefinition().createMetric(collected.resourceId(), collected.tags()),
                         collected.value()
                 ));
     }
 
     private record ConfigAndSource(
-            MetricCollectionConfig config,
+            MeasurementCollectionConfig config,
             EventMetricsSource metricsSource
     ) {
 

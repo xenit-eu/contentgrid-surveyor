@@ -38,3 +38,4 @@ include 'surveyor-infrastructure-source-metrics-pegman'
 include 'surveyor-usecases'
 
 include 'jackson-streaming-parser'
+include 'surveyor-testcontainers'

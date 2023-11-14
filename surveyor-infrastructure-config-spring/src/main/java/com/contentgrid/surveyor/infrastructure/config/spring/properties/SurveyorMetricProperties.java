@@ -15,14 +15,10 @@ public class SurveyorMetricProperties {
 
     MetricSourceSystemType type;
     ResourceType resourceType;
-    String metric;
+    MetricName metric;
     SurveyorMetricQueryProperties query;
     List<SurveyorMetricAggregrationProperties> insights;
     List<SurveyorMetricAggregrationProperties> billing;
-
-    public MetricName metric() {
-        return MetricName.of(resourceType, metric);
-    }
 
     public record SurveyorMetricQueryProperties(
             String resourceIdLabel,

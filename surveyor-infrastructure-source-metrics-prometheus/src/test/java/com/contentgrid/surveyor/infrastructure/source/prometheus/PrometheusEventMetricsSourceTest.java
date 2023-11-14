@@ -8,7 +8,7 @@ import com.contentgrid.surveyor.infrastructure.source.prometheus.test.Prometheus
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.source.CollectedMetric;
-import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
+import com.contentgrid.surveyor.spi.config.MeasurementCollectionConfig;
 import com.contentgrid.surveyor.values.MetricName;
 import com.contentgrid.surveyor.spi.MetricSourceSystemType;
 import com.contentgrid.surveyor.values.ResourceId;
@@ -93,7 +93,7 @@ class PrometheusEventMetricsSourceTest {
                 .url(PROMETHEUS.getApiUrl())
                 .headers(Map.of())
                 .build();
-        var config = MetricCollectionConfig.builder()
+        var config = MeasurementCollectionConfig.builder()
                 .type(MetricSourceSystemType.of("prometheus"))
                 .metric(MetricName.of(ResourceType.of("test"), "test"))
                 .query("fixed_metric_1")
@@ -120,7 +120,7 @@ class PrometheusEventMetricsSourceTest {
                 ))
                 .verifyComplete();
 
-        var dynamicConfig = MetricCollectionConfig.builder()
+        var dynamicConfig = MeasurementCollectionConfig.builder()
                 .type(MetricSourceSystemType.of("prometheus"))
                 .metric(MetricName.of(ResourceType.of("test"), "test"))
                 .query("increase(growing_metric_1[1h])")

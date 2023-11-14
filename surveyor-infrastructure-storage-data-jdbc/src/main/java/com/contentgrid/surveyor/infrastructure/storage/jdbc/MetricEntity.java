@@ -1,8 +1,8 @@
 package com.contentgrid.surveyor.infrastructure.storage.jdbc;
 
-import com.contentgrid.surveyor.infrastructure.storage.jdbc.MetricEntity.MetricEntityId;
-import java.math.BigDecimal;
-import java.time.Instant;
+import com.contentgrid.surveyor.spi.resources.Metric;
+import com.contentgrid.surveyor.values.MetricName;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,45 +10,30 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.domain.Persistable;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
-@Table("metric_events")
+@Table("metric")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Builder
-public class MetricEntity implements Persistable<MetricEntityId> {
+public class MetricEntity {
+
+    @Id
+    Long id;
 
     @NonNull
-    Long resourceId;
-    @NonNull
-    Instant startTime;
-    @NonNull
-    Instant endTime;
-    @NonNull
-    BigDecimal value;
+    Long resourceIdentityId;
 
-    @Override
-    public MetricEntityId getId() {
-        return new MetricEntityId(
-                resourceId,
-                startTime,
-                endTime
-        );
+    @NonNull
+    String metricName;
+
+    @NonNull
+    Map<String, String> tags;
+
+    public static MetricEntity from(Long resourceIdentityId, Metric metric) {
+        return new MetricEntity(null, resourceIdentityId, metric.getMetricName().name(), metric.getTags());
     }
 
-    @Override
-    public boolean isNew() {
-        return true;
-    }
-
-    record MetricEntityId(
-            Long resourceId,
-            Instant startTime,
-            Instant endTime
-    ) {
-
-    }
 }
