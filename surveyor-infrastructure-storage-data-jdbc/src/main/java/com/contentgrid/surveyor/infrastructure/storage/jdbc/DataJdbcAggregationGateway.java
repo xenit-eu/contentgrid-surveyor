@@ -30,7 +30,6 @@ public class DataJdbcAggregationGateway implements AggregateMeasurementsSpiPort 
 
     private final MetricRepository metricRepository;
     private final DatabaseClient databaseClient;
-    private final ConversionService conversionService;
 
     @Override
     public Flux<Measurement> findMeasurements(Metric resource, TimeInterval interval,

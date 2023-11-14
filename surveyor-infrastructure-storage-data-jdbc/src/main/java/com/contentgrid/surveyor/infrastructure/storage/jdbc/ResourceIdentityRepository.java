@@ -1,8 +1,6 @@
 package com.contentgrid.surveyor.infrastructure.storage.jdbc;
 
 import com.contentgrid.surveyor.spi.resources.ResourceIdentity;
-import com.contentgrid.surveyor.values.MetricName;
-import com.contentgrid.surveyor.values.SourceName;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Flux;
@@ -18,7 +16,7 @@ public interface ResourceIdentityRepository extends ReactiveCrudRepository<Resou
             """)
     Mono<ResourceIdentityEntity> upsert(ResourceIdentity resource);
 
-    Flux<ResourceIdentityEntity> findAllByOrgRefIsNull();
+    Flux<ResourceIdentityEntity> findAllByLinkOrgRefIsNull();
 
     @Query("""
             select * from resource_identity ri

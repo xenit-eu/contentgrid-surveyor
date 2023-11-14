@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Table;
 
 @Table("resource_identity")
@@ -21,7 +22,7 @@ import org.springframework.data.relational.core.mapping.Table;
 @Builder(access = AccessLevel.PACKAGE, toBuilder = true)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ResourceIdentityEntity {
+public class ResourceIdentityEntity implements Persistable<Long> {
 
     @Id
     Long id;
@@ -35,11 +36,16 @@ public class ResourceIdentityEntity {
     @NonNull
     String resourceId;
 
-    String orgRef;
+    String linkOrgRef;
 
-    String projectRef;
+    String linkProjectRef;
 
-    String applicationRef;
+    String linkApplicationRef;
+
+    @Override
+    public boolean isNew() {
+        return id == null;
+    }
 
     static class ResourceIdentityEntityBuilder {
 
@@ -52,9 +58,9 @@ public class ResourceIdentityEntity {
 
         public ResourceIdentityEntityBuilder fromDomain(ResourceLinkage resourceLinkage) {
             return this
-                    .orgRef(resourceLinkage.getOrgRef())
-                    .projectRef(resourceLinkage.getProjectRef())
-                    .applicationRef(resourceLinkage.getApplicationRef());
+                    .linkOrgRef(resourceLinkage.getOrgRef())
+                    .linkProjectRef(resourceLinkage.getProjectRef())
+                    .linkApplicationRef(resourceLinkage.getApplicationRef());
         }
     }
 
@@ -68,9 +74,9 @@ public class ResourceIdentityEntity {
 
     public ResourceLinkage toResourceLinkage() {
         return new ResourceLinkage(
-                orgRef,
-                projectRef,
-                applicationRef
+                linkOrgRef,
+                linkProjectRef,
+                linkApplicationRef
         );
     }
 }

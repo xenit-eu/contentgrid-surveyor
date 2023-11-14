@@ -37,10 +37,14 @@ public class SurveyorStorageDataJdbcConfiguration {
 
     @Bean
     DataJdbcAggregationGateway dataJdbcAggregationGateway(MetricRepository metricRepository,
-            DatabaseClient databaseClient, R2dbcCustomConversions customConversions) {
-        var conversionService = new DefaultConversionService();
-        customConversions.registerConvertersIn(conversionService);
-        return new DataJdbcAggregationGateway(metricRepository, databaseClient, conversionService);
+            DatabaseClient databaseClient) {
+        return new DataJdbcAggregationGateway(metricRepository, databaseClient);
+    }
+
+    @Bean
+    DataJdbcResourceGateway dataJdbcResourceGateway(ResourceIdentityRepository resourceIdentityRepository,
+            MetricRepository metricRepository) {
+        return new DataJdbcResourceGateway(resourceIdentityRepository, metricRepository);
     }
 
     @WritingConverter

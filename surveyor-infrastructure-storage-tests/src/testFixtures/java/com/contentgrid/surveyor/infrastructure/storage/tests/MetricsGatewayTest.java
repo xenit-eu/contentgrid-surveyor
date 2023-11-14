@@ -6,8 +6,8 @@ import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.resources.Metric;
 import com.contentgrid.surveyor.spi.resources.ResourceIdentity;
 import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
-import com.contentgrid.surveyor.spi.storage.Measurement;
 import com.contentgrid.surveyor.spi.storage.LastMeasurementSpiPort;
+import com.contentgrid.surveyor.spi.storage.Measurement;
 import com.contentgrid.surveyor.spi.storage.StoreMeasurementSpiPort;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationOperation;
@@ -22,7 +22,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 
 public abstract class MetricsGatewayTest {
 
