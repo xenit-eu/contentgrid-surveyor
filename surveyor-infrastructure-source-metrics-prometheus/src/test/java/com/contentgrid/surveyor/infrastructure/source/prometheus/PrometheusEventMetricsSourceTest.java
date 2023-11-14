@@ -95,12 +95,13 @@ class PrometheusEventMetricsSourceTest {
                 .build();
         var config = MeasurementCollectionConfig.builder()
                 .type(MetricSourceSystemType.of("prometheus"))
-                .metric(MetricName.of(ResourceType.of("test"), "test"))
+                .resourceType(ResourceType.of("test"))
+                .metric(MetricName.of("test"))
                 .query("fixed_metric_1")
                 .interval(Duration.ofHours(1))
                 .resourceIdLabel("resource")
                 .build();
-        var staticDefinition = new ResourceDefinition(SourceName.of("test"), config.metric());
+        var staticDefinition = new ResourceDefinition(SourceName.of("test"), config.resourceType(), config.metric());
         var source = new PrometheusEventMetricsSource(WebClient.builder(), objectMapper, api,
                 staticDefinition.sourceSystem(),
                 config.type());
@@ -109,12 +110,14 @@ class PrometheusEventMetricsSourceTest {
                 .expectNext(new CollectedMetric(
                         staticDefinition,
                         ResourceId.of("abc"),
+                        Map.of(),
                         TimeInterval.after(FAKE_METRICS_START, Duration.ofHours(1)),
                         BigDecimal.valueOf(8)
                 ))
                 .expectNext(new CollectedMetric(
                         staticDefinition,
                         ResourceId.of("xyz"),
+                        Map.of(),
                         TimeInterval.after(FAKE_METRICS_START, Duration.ofHours(1)),
                         BigDecimal.valueOf(15.3)
                 ))
@@ -122,18 +125,21 @@ class PrometheusEventMetricsSourceTest {
 
         var dynamicConfig = MeasurementCollectionConfig.builder()
                 .type(MetricSourceSystemType.of("prometheus"))
-                .metric(MetricName.of(ResourceType.of("test"), "test"))
+                .resourceType(ResourceType.of("test"))
+                .metric(MetricName.of("test"))
                 .query("increase(growing_metric_1[1h])")
                 .interval(Duration.ofHours(1))
                 .resourceIdLabel("resource")
                 .build();
-        var dynamicDefinition = new ResourceDefinition(SourceName.of("test"), dynamicConfig.metric());
+        var dynamicDefinition = new ResourceDefinition(SourceName.of("test"), dynamicConfig.resourceType(),
+                dynamicConfig.metric());
 
         StepVerifier.create(Flux.from(source.collectMetrics(dynamicConfig, FAKE_METRICS_START))
                         .filter(m -> Objects.equals(m.resourceId(), ResourceId.of("abc"))))
                 .expectNext(new CollectedMetric(
                         dynamicDefinition,
                         ResourceId.of("abc"),
+                        Map.of(),
                         TimeInterval.after(FAKE_METRICS_START, Duration.ofHours(1)),
                         // value is <minutes>/10 -> increases with 6 per hour
                         BigDecimal.valueOf(6)

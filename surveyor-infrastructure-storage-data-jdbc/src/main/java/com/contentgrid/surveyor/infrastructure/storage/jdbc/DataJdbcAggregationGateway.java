@@ -36,7 +36,7 @@ public class DataJdbcAggregationGateway implements AggregateMeasurementsSpiPort 
     public Flux<Measurement> findMeasurements(Metric resource, TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
         var query = databaseClient.sql(() -> buildQuery(aggregationConfiguration, """
-                select * from measurements
+                select * from measurement
                     where metric_id = :metricId
                     and end_time > :startTime and end_time <= :endTime
                 """));
@@ -53,10 +53,8 @@ public class DataJdbcAggregationGateway implements AggregateMeasurementsSpiPort 
     private Measurement createMeasurement(Metric resource, Readable rs) {
         return new Measurement(
                 TimeInterval.between(
-                        conversionService.convert(rs.get("start_time", Timestamp.class),
-                                Instant.class),
-                        conversionService.convert(rs.get("end_time", Timestamp.class),
-                                Instant.class)
+                        rs.get("start_time", Instant.class),
+                        rs.get("end_time", Instant.class)
                 ),
                 resource,
                 rs.get("value", BigDecimal.class)
@@ -69,7 +67,7 @@ public class DataJdbcAggregationGateway implements AggregateMeasurementsSpiPort 
             TimeInterval interval,
             AggregationConfiguration aggregationConfiguration) {
         var query = databaseClient.sql(() -> buildQuery(aggregationConfiguration, """
-                        select * from measurements m
+                        select * from measurement m
                             where metric_id IN(:metricIds)
                             and end_time > :startTime and end_time <= :endTime
                         """))
@@ -104,7 +102,7 @@ public class DataJdbcAggregationGateway implements AggregateMeasurementsSpiPort 
                     // where the end time aligns with the time bucket (end_time is the exclusive boundary)
                     return """
                             select time_bucket('%s', m.end_time - '1 microsecond'::interval, :startTime ::timestamptz),
-                                resource_id,
+                                metric_id,
                                 min(m.start_time) as start_time,
                                 max(m.end_time) as end_time,
                                 %s(m.value) as value
@@ -118,7 +116,7 @@ public class DataJdbcAggregationGateway implements AggregateMeasurementsSpiPort 
                 },
                 finishingOperation -> {
                     return """
-                            select resource_id,
+                            select metric_id,
                                 min(m.start_time) as start_time,
                                 max(m.end_time) as end_time,
                                 %s(m.value) as value
