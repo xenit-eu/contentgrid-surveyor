@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.infrastructure.storage.jdbc;
+package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -8,7 +8,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @SpringBootApplication(proxyBeanMethods = false)
-@Import(SurveyorStorageDataJdbcConfiguration.class)
+@Import(SurveyorStorageDataR2dbcConfiguration.class)
 class TestApplicationConfiguration {
 
     @Bean

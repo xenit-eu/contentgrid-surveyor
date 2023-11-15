@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.infrastructure.storage.jdbc;
+package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
 
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.resources.Metric;

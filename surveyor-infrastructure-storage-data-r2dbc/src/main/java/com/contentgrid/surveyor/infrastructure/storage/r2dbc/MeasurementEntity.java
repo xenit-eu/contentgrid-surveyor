@@ -1,6 +1,6 @@
-package com.contentgrid.surveyor.infrastructure.storage.jdbc;
+package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
 
-import com.contentgrid.surveyor.infrastructure.storage.jdbc.MeasurementEntity.MeasurementEntityId;
+import com.contentgrid.surveyor.infrastructure.storage.r2dbc.MeasurementEntity.MeasurementEntityId;
 import java.math.BigDecimal;
 import java.time.Instant;
 import lombok.AccessLevel;

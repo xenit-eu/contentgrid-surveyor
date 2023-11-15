@@ -1,7 +1,7 @@
-package com.contentgrid.surveyor.infrastructure.storage.jdbc;
+package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
 
 
-import com.contentgrid.surveyor.infrastructure.storage.jdbc.MetricRepository.MetricAndResourceIdentityView;
+import com.contentgrid.surveyor.infrastructure.storage.r2dbc.MetricRepository.MetricAndResourceIdentityView;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.resources.Metric;
@@ -10,23 +10,19 @@ import com.contentgrid.surveyor.spi.storage.Measurement;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationOperation;
 import io.r2dbc.spi.Readable;
-import io.r2dbc.spi.Row;
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.convert.ConversionService;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
-public class DataJdbcAggregationGateway implements AggregateMeasurementsSpiPort {
+public class DataR2dbcAggregationGateway implements AggregateMeasurementsSpiPort {
 
     private final MetricRepository metricRepository;
     private final DatabaseClient databaseClient;

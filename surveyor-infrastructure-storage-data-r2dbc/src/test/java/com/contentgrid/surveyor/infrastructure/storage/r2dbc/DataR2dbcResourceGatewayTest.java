@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.infrastructure.storage.jdbc;
+package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
 
 import com.contentgrid.surveyor.infrastructure.storage.tests.ResourceGatewayTest;
 import com.contentgrid.surveyor.spi.resources.CreateMetricSpiPort;
@@ -15,7 +15,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Getter
-public class DataJdbcResourceGatewayTest extends ResourceGatewayTest {
+public class DataR2dbcResourceGatewayTest extends ResourceGatewayTest {
+
     @Autowired
     private CreateMetricSpiPort createMetricPort;
 

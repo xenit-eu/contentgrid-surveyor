@@ -1,11 +1,9 @@
-package com.contentgrid.surveyor.infrastructure.storage.jdbc;
+package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
 
 import com.contentgrid.surveyor.spi.resources.Metric;
-import com.contentgrid.surveyor.values.MetricName;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;

@@ -1,6 +1,6 @@
 package com.contentgrid.surveyor.application.surveyor.autoconfigure;
 
-import com.contentgrid.surveyor.infrastructure.storage.jdbc.SurveyorStorageDataJdbcConfiguration;
+import com.contentgrid.surveyor.infrastructure.storage.r2dbc.SurveyorStorageDataR2dbcConfiguration;
 import com.contentgrid.surveyor.infrastructure.storage.memory.SurveyorStorageInMemoryConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -17,7 +17,7 @@ public class InMemoryOrDatabaseStorageAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnBean(R2dbcConnectionDetails.class)
-    @Import(SurveyorStorageDataJdbcConfiguration.class)
+    @Import(SurveyorStorageDataR2dbcConfiguration.class)
     public class DatabaseStorageConfiguration {
 
     }

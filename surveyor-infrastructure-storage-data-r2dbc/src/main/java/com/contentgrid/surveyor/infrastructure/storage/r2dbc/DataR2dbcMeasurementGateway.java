@@ -1,6 +1,6 @@
-package com.contentgrid.surveyor.infrastructure.storage.jdbc;
+package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
 
-import com.contentgrid.surveyor.infrastructure.storage.jdbc.MetricRepository.MetricAndResourceIdentityView;
+import com.contentgrid.surveyor.infrastructure.storage.r2dbc.MetricRepository.MetricAndResourceIdentityView;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.storage.Measurement;
@@ -12,7 +12,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
-public class DataJdbcMeasurementGateway implements StoreMeasurementSpiPort, LastMeasurementSpiPort {
+public class DataR2dbcMeasurementGateway implements StoreMeasurementSpiPort, LastMeasurementSpiPort {
 
     private final ResourceIdentityRepository resourceIdentityRepository;
     private final MetricRepository metricRepository;

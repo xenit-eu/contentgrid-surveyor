@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.infrastructure.storage.jdbc;
+package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
 
 import com.contentgrid.surveyor.infrastructure.storage.tests.MetricsGatewayTest;
 import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
@@ -15,7 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Getter
-class DataJdbcMeasurementGatewayTest extends MetricsGatewayTest {
+class DataR2dbcMeasurementGatewayTest extends MetricsGatewayTest {
 
     @Autowired
     private StoreMeasurementSpiPort storeEventCountMetricPort;

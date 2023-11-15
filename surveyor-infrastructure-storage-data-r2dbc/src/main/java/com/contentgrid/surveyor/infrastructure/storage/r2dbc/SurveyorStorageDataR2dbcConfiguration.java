@@ -1,50 +1,38 @@
-package com.contentgrid.surveyor.infrastructure.storage.jdbc;
+package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
 
 import com.contentgrid.surveyor.values.MetricName;
 import com.contentgrid.surveyor.values.ResourceId;
 import com.contentgrid.surveyor.values.ResourceType;
 import com.contentgrid.surveyor.values.SourceName;
-import io.r2dbc.spi.ConnectionFactory;
-import io.r2dbc.spi.ConnectionFactoryOptions;
-import io.r2dbc.spi.Option;
-import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.flyway.FlywayConnectionDetails;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.JdbcConnectionDetails;
-import org.springframework.boot.autoconfigure.r2dbc.R2dbcConnectionDetails;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.convert.ReadingConverter;
 import org.springframework.data.convert.WritingConverter;
-import org.springframework.data.r2dbc.convert.R2dbcConverter;
-import org.springframework.data.r2dbc.convert.R2dbcCustomConversions;
 import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
 import org.springframework.r2dbc.core.DatabaseClient;
 
-@EnableR2dbcRepositories(basePackageClasses = SurveyorStorageDataJdbcConfiguration.class)
+@EnableR2dbcRepositories(basePackageClasses = SurveyorStorageDataR2dbcConfiguration.class)
 @Configuration(proxyBeanMethods = false)
-public class SurveyorStorageDataJdbcConfiguration {
+public class SurveyorStorageDataR2dbcConfiguration {
 
     @Bean
-    DataJdbcMeasurementGateway dataJdbcMetricsGateway(ResourceIdentityRepository resourceIdentityRepository,
+    DataR2dbcMeasurementGateway dataJdbcMetricsGateway(ResourceIdentityRepository resourceIdentityRepository,
             MetricRepository metricRepository,
             MeasurementRepository measurementRepository) {
-        return new DataJdbcMeasurementGateway(resourceIdentityRepository, metricRepository, measurementRepository);
+        return new DataR2dbcMeasurementGateway(resourceIdentityRepository, metricRepository, measurementRepository);
     }
 
     @Bean
-    DataJdbcAggregationGateway dataJdbcAggregationGateway(MetricRepository metricRepository,
+    DataR2dbcAggregationGateway dataJdbcAggregationGateway(MetricRepository metricRepository,
             DatabaseClient databaseClient) {
-        return new DataJdbcAggregationGateway(metricRepository, databaseClient);
+        return new DataR2dbcAggregationGateway(metricRepository, databaseClient);
     }
 
     @Bean
-    DataJdbcResourceGateway dataJdbcResourceGateway(ResourceIdentityRepository resourceIdentityRepository,
+    DataR2dbcResourceGateway dataJdbcResourceGateway(ResourceIdentityRepository resourceIdentityRepository,
             MetricRepository metricRepository) {
-        return new DataJdbcResourceGateway(resourceIdentityRepository, metricRepository);
+        return new DataR2dbcResourceGateway(resourceIdentityRepository, metricRepository);
     }
 
     @WritingConverter

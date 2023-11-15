@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.infrastructure.storage.jdbc;
+package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
 
 import com.contentgrid.surveyor.spi.resources.CreateMetricSpiPort;
 import com.contentgrid.surveyor.spi.resources.FindUnlinkedResourcesSpiPort;
@@ -7,13 +7,13 @@ import com.contentgrid.surveyor.spi.resources.Metric;
 import com.contentgrid.surveyor.spi.resources.ResourceIdentity;
 import com.contentgrid.surveyor.spi.resources.ResourceLinkage;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
-public class DataJdbcResourceGateway implements CreateMetricSpiPort, FindUnlinkedResourcesSpiPort,
+public class DataR2dbcResourceGateway implements CreateMetricSpiPort, FindUnlinkedResourcesSpiPort,
         LinkResourceSpiPort {
+
     private final ResourceIdentityRepository resourceIdentityRepository;
     private final MetricRepository metricRepository;
 
