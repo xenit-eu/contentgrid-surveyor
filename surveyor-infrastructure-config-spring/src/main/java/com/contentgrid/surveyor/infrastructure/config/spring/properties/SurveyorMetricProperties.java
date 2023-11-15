@@ -2,7 +2,7 @@ package com.contentgrid.surveyor.infrastructure.config.spring.properties;
 
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationOperation;
 import com.contentgrid.surveyor.values.MetricName;
-import com.contentgrid.surveyor.spi.MetricSourceSystemType;
+import com.contentgrid.surveyor.spi.MetricCollectorSystemType;
 import com.contentgrid.surveyor.values.ResourceType;
 import java.time.Duration;
 import java.util.List;
@@ -13,16 +13,12 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 public class SurveyorMetricProperties {
 
-    MetricSourceSystemType type;
+    MetricCollectorSystemType type;
     ResourceType resourceType;
-    String metric;
+    MetricName metric;
     SurveyorMetricQueryProperties query;
     List<SurveyorMetricAggregrationProperties> insights;
     List<SurveyorMetricAggregrationProperties> billing;
-
-    public MetricName metric() {
-        return MetricName.of(resourceType, metric);
-    }
 
     public record SurveyorMetricQueryProperties(
             String resourceIdLabel,

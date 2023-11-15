@@ -1,6 +1,7 @@
 package com.contentgrid.surveyor.api.metrics;
 
 import com.contentgrid.surveyor.values.MetricName;
+import com.contentgrid.surveyor.values.ResourceType;
 import java.time.Instant;
 import lombok.Builder;
 import lombok.NonNull;
@@ -12,6 +13,8 @@ public interface FindExportedMetrics {
 
     @Builder
     record ExportMetricsCommand(
+            @NonNull
+            ResourceType resourceType,
             @NonNull
             MetricName metric,
             @NonNull

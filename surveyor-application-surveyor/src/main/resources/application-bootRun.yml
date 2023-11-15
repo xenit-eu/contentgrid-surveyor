@@ -2,13 +2,9 @@ surveyor:
   systems:
     pegman:
       test:
-        name: eu-west-1.contentgrid.cloud
+        name: sandbox.contentgrid.cloud
         type: pegman
         url: 'http://localhost:9088/'
-
-spring:
-  datasource:
-    url: jdbc:tc:timescaledb:latest-pg14:///surveyor
 
 server:
   port: 9087

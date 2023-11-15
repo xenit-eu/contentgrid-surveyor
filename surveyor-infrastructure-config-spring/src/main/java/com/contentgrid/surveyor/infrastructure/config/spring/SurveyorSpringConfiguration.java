@@ -5,9 +5,9 @@ import com.contentgrid.surveyor.infrastructure.config.spring.properties.Surveyor
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
-import com.contentgrid.surveyor.spi.source.EventMetricsSource;
+import com.contentgrid.surveyor.spi.collector.MeasurementCollector;
 import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
-import com.contentgrid.surveyor.spi.MetricSourceSystemType;
+import com.contentgrid.surveyor.spi.MetricCollectorSystemType;
 import com.contentgrid.surveyor.values.ResourceType;
 import java.util.List;
 import java.util.Objects;
@@ -28,8 +28,8 @@ public class SurveyorSpringConfiguration {
     @Bean
     FindResourceDefinitionsSpiPort findResourceDefinitionsSpiPort(
             FindCollectionConfigurationsSpiPort findCollectionConfigurationsSpiPort,
-            List<? extends EventMetricsSource> metricsSources) {
-        return new ResourceDefinitionsGateway(findCollectionConfigurationsSpiPort, metricsSources);
+            List<? extends MeasurementCollector> measurementCollectors) {
+        return new ResourceDefinitionsGateway(findCollectionConfigurationsSpiPort, measurementCollectors);
     }
 
     @Bean
@@ -41,15 +41,15 @@ public class SurveyorSpringConfiguration {
     private static class ResourceDefinitionsGateway implements FindResourceDefinitionsSpiPort {
 
         private final FindCollectionConfigurationsSpiPort findCollectionConfigurationsSpiPort;
-        private final List<? extends EventMetricsSource> metricsSources;
+        private final List<? extends MeasurementCollector> measurementCollectors;
 
         @Override
         public List<ResourceDefinition> findResourceDefinitions(ResourceType resourceType) {
-            return metricsSources.stream()
-                    .flatMap(metricsSource -> findCollectionConfigurationsSpiPort.findConfigurationsFor(
-                                    metricsSource.getSystemType()).stream()
-                            .filter(config -> Objects.equals(config.metric().type(), resourceType))
-                            .flatMap(config -> metricsSource.resourceDefinition(config).stream())
+            return measurementCollectors.stream()
+                    .flatMap(measurementCollector -> findCollectionConfigurationsSpiPort.findConfigurationsFor(
+                                    measurementCollector.getSystemType()).stream()
+                            .filter(config -> Objects.equals(config.resourceType(), resourceType))
+                            .flatMap(config -> measurementCollector.resourceDefinition(config).stream())
                     )
                     .toList();
         }
@@ -61,7 +61,7 @@ public class SurveyorSpringConfiguration {
         private final List<SurveyorMetricProperties> properties;
 
         @Override
-        public List<MetricCollectionConfig> findConfigurationsFor(MetricSourceSystemType sourceSystemType) {
+        public List<MetricCollectionConfig> findConfigurationsFor(MetricCollectorSystemType sourceSystemType) {
             return properties.stream()
                     .filter(props -> Objects.equals(props.type(), sourceSystemType))
                     .map(this::createConfig)
@@ -71,6 +71,7 @@ public class SurveyorSpringConfiguration {
         private MetricCollectionConfig createConfig(SurveyorMetricProperties properties) {
             return MetricCollectionConfig.builder()
                     .type(properties.type())
+                    .resourceType(properties.resourceType())
                     .metric(properties.metric())
                     .interval(properties.query().interval())
                     .query(properties.query().query())

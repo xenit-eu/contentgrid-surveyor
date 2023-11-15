@@ -57,7 +57,8 @@ public class ResourceMetricsController {
             ServerHttpResponse response
     ) {
         ExportMetricsCommand command = ExportMetricsCommand.builder()
-                .metric(MetricName.of(ResourceType.of(resourceType), metric))
+                .resourceType(ResourceType.of(resourceType))
+                .metric(MetricName.of(metric))
                 .start(start)
                 .end(end)
                 .build();

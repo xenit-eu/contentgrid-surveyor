@@ -1,3 +1,5 @@
+spring.config.import: optional:classpath:/secrets/sandbox-tokens.yml
+
 server:
   port: 9088
   error:
@@ -10,3 +12,21 @@ management:
     web:
       exposure:
         include: "*"
+
+surveyor:
+  systems:
+    prometheus:
+      scw-prometheus-product:
+        name: sandbox.contentgrid.cloud
+        type: scaleway:prometheus
+        url: https://metrics.cockpit.fr-par.scw.cloud/prometheus
+        headers:
+          x-token: XXX
+          x-datasource: product
+      scw-loki-product:
+        name: sandbox.contentgrid.cloud
+        type: scaleway:loki
+        url: https://logs.cockpit.fr-par.scw.cloud/loki
+        headers:
+          x-token: XXX
+          x-datasource: product

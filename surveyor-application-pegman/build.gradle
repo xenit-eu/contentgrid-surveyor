@@ -13,7 +13,7 @@ dependencies {
 	implementation project(':surveyor-drivers-web')
 	implementation project(':surveyor-usecases')
 	implementation project(':surveyor-infrastructure-storage-pullthrough')
-	implementation project(':surveyor-infrastructure-source-metrics-prometheus')
+	implementation project(':surveyor-infrastructure-collector-prometheus')
 	implementation project(':surveyor-infrastructure-config-spring')
 
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'

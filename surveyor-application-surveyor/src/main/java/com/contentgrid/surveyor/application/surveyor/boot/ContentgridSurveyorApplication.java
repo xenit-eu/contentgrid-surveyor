@@ -1,30 +1,26 @@
 package com.contentgrid.surveyor.application.surveyor.boot;
 
 import com.contentgrid.surveyor.api.pull.PullMetrics;
+import com.contentgrid.surveyor.application.surveyor.autoconfigure.OptionalR2dbcAutoConfiguration;
 import com.contentgrid.surveyor.drivers.schedule.SurveyorSchedulerConfiguration;
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
 import com.contentgrid.surveyor.infrastructure.config.spring.SurveyorSpringConfiguration;
-import com.contentgrid.surveyor.infrastructure.source.pegman.SurveyorSourceMetricsPegmanConfiguration;
-import com.contentgrid.surveyor.infrastructure.storage.jdbc.SurveyorStorageDataJdbcConfiguration;
-import com.contentgrid.surveyor.infrastructure.storage.memory.SurveyorStorageInMemoryConfiguration;
+import com.contentgrid.surveyor.infrastructure.collector.pegman.SurveyorMeasurementCollectorPegmanConfiguration;
 import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
-import com.contentgrid.surveyor.spi.config.FindResourceAggregationConfigurationSpiPort;
+import com.contentgrid.surveyor.spi.config.FindMeasurementAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
-import com.contentgrid.surveyor.spi.source.EventMetricsSource;
-import com.contentgrid.surveyor.spi.storage.AggregateEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.LastEventCountMetricSpiPort;
-import com.contentgrid.surveyor.spi.storage.StoreEventCountMetricSpiPort;
-import com.contentgrid.surveyor.application.surveyor.boot.autoconfigure.OptionalDataSourceAutoConfiguration;
+import com.contentgrid.surveyor.spi.collector.MeasurementCollector;
+import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
+import com.contentgrid.surveyor.spi.storage.LastMeasurementSpiPort;
+import com.contentgrid.surveyor.spi.storage.StoreMeasurementSpiPort;
 import com.contentgrid.surveyor.usecase.metrics.FindMetricsUseCase;
 import com.contentgrid.surveyor.usecase.pull.PullMetricsUseCase;
 import java.util.List;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @SpringBootApplication
@@ -32,10 +28,10 @@ import org.springframework.context.annotation.Import;
         SurveyorWebConfiguration.class,
         SurveyorSchedulerConfiguration.class,
         SurveyorSpringConfiguration.class,
-        SurveyorSourceMetricsPegmanConfiguration.class
+        SurveyorMeasurementCollectorPegmanConfiguration.class
 })
-@ImportAutoConfiguration(value = OptionalDataSourceAutoConfiguration.class, exclude = {
-        DataSourceAutoConfiguration.class})
+@ImportAutoConfiguration(value = OptionalR2dbcAutoConfiguration.class, exclude = {
+        R2dbcAutoConfiguration.class})
 public class ContentgridSurveyorApplication {
 
     public static void main(String[] args) {
@@ -44,32 +40,20 @@ public class ContentgridSurveyorApplication {
 
     @Bean
     PullMetrics pullMetrics(FindCollectionConfigurationsSpiPort findCollectionConfigurationsSpiPort,
-            List<? extends EventMetricsSource> metricsSources,
-            StoreEventCountMetricSpiPort storeEventCountMetricSpiPort,
-            LastEventCountMetricSpiPort lastEventCountMetricSpiPort) {
-        return new PullMetricsUseCase(metricsSources, findCollectionConfigurationsSpiPort, storeEventCountMetricSpiPort,
-                lastEventCountMetricSpiPort);
+            List<? extends MeasurementCollector> measurementCollectors,
+            StoreMeasurementSpiPort storeMeasurementSpiPort,
+            LastMeasurementSpiPort lastMeasurementSpiPort) {
+        return new PullMetricsUseCase(measurementCollectors, findCollectionConfigurationsSpiPort,
+                storeMeasurementSpiPort,
+                lastMeasurementSpiPort);
     }
 
     @Bean
-    FindMetricsUseCase findMetrics(FindResourceAggregationConfigurationSpiPort resourceAggregationConfigurationSpiPort,
+    FindMetricsUseCase findMetrics(
+            FindMeasurementAggregationConfigurationSpiPort resourceAggregationConfigurationSpiPort,
             FindResourceDefinitionsSpiPort findResourceDefinitionsSpiPort,
-            AggregateEventCountMetricSpiPort aggregateEventCountMetricSpiPort) {
-        return new FindMetricsUseCase(resourceAggregationConfigurationSpiPort, aggregateEventCountMetricSpiPort,
+            AggregateMeasurementsSpiPort aggregateMeasurementsSpiPort) {
+        return new FindMetricsUseCase(resourceAggregationConfigurationSpiPort, aggregateMeasurementsSpiPort,
                 findResourceDefinitionsSpiPort);
-    }
-
-    @ConditionalOnProperty("spring.datasource.url")
-    @Import(SurveyorStorageDataJdbcConfiguration.class)
-    @Configuration(proxyBeanMethods = false)
-    static class StorageDatabase {
-
-    }
-
-    @ConditionalOnProperty(value = "spring.datasource.url", havingValue = "none", matchIfMissing = true)
-    @Import(SurveyorStorageInMemoryConfiguration.class)
-    @Configuration(proxyBeanMethods = false)
-    class StorageInMemory {
-
     }
 }

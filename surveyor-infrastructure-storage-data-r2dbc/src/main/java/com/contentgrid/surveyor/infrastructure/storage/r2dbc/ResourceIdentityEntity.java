@@ -1,0 +1,82 @@
+package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
+
+import com.contentgrid.surveyor.spi.resources.ResourceIdentity;
+import com.contentgrid.surveyor.spi.resources.ResourceLinkage;
+import com.contentgrid.surveyor.values.ResourceId;
+import com.contentgrid.surveyor.values.ResourceType;
+import com.contentgrid.surveyor.values.SourceName;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.experimental.FieldDefaults;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Table;
+
+@Table("resource_identity")
+@Getter
+@NoArgsConstructor
+@Builder(access = AccessLevel.PACKAGE, toBuilder = true)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ResourceIdentityEntity implements Persistable<Long> {
+
+    @Id
+    Long id;
+
+    @NonNull
+    String sourceSystem;
+
+    @NonNull
+    String resourceType;
+
+    @NonNull
+    String resourceId;
+
+    String linkOrgRef;
+
+    String linkProjectRef;
+
+    String linkApplicationRef;
+
+    @Override
+    public boolean isNew() {
+        return id == null;
+    }
+
+    static class ResourceIdentityEntityBuilder {
+
+        public ResourceIdentityEntityBuilder fromDomain(ResourceIdentity resourceIdentity) {
+            return this
+                    .sourceSystem(resourceIdentity.getSourceSystem().sourceName())
+                    .resourceType(resourceIdentity.getResourceType().resourceType())
+                    .resourceId(resourceIdentity.getResourceId().resourceId());
+        }
+
+        public ResourceIdentityEntityBuilder fromDomain(ResourceLinkage resourceLinkage) {
+            return this
+                    .linkOrgRef(resourceLinkage.getOrgRef())
+                    .linkProjectRef(resourceLinkage.getProjectRef())
+                    .linkApplicationRef(resourceLinkage.getApplicationRef());
+        }
+    }
+
+    public ResourceIdentity toResourceIdentity() {
+        return new ResourceIdentity(
+                SourceName.of(sourceSystem),
+                ResourceType.of(resourceType),
+                ResourceId.of(resourceId)
+        );
+    }
+
+    public ResourceLinkage toResourceLinkage() {
+        return new ResourceLinkage(
+                linkOrgRef,
+                linkProjectRef,
+                linkApplicationRef
+        );
+    }
+}

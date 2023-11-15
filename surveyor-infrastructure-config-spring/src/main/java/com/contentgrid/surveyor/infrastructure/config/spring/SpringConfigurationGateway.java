@@ -3,7 +3,7 @@ package com.contentgrid.surveyor.infrastructure.config.spring;
 import com.contentgrid.surveyor.infrastructure.config.spring.properties.SurveyorMetricProperties;
 import com.contentgrid.surveyor.infrastructure.config.spring.properties.SurveyorMetricProperties.SurveyorMetricAggregrationProperties;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
-import com.contentgrid.surveyor.spi.config.FindResourceAggregationConfigurationSpiPort;
+import com.contentgrid.surveyor.spi.config.FindMeasurementAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration.AggregationConfigurationBuilder;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationOperation;
@@ -14,7 +14,7 @@ import java.util.function.BiFunction;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class SpringConfigurationGateway implements FindResourceAggregationConfigurationSpiPort {
+public class SpringConfigurationGateway implements FindMeasurementAggregationConfigurationSpiPort {
 
     private final List<SurveyorMetricProperties> metricProperties;
 

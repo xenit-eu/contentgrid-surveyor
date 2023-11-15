@@ -1,5 +1,6 @@
 package com.contentgrid.surveyor.infrastructure.storage.memory;
 
+import com.contentgrid.surveyor.spi.resources.CreateMetricSpiPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -7,7 +8,12 @@ import org.springframework.context.annotation.Configuration;
 public class SurveyorStorageInMemoryConfiguration {
 
     @Bean
-    InMemoryMetricsGateway inMemoryMetricsGateway() {
-        return new InMemoryMetricsGateway();
+    InMemoryResourceGateway inMemoryResourceLinkGateway() {
+        return new InMemoryResourceGateway();
+    }
+
+    @Bean
+    InMemoryMeasurementGateway inMemoryMetricsGateway(CreateMetricSpiPort createMetricSpiPort) {
+        return new InMemoryMeasurementGateway(createMetricSpiPort);
     }
 }
