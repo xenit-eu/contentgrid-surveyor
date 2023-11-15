@@ -34,6 +34,7 @@ include 'surveyor-infrastructure-storage-data-r2dbc'
 include 'surveyor-infrastructure-storage-tests'
 include 'surveyor-infrastructure-collector-prometheus'
 include 'surveyor-infrastructure-collector-pegman'
+include 'surveyor-infrastructure-resource-linkage-captain'
 
 include 'surveyor-usecases'
 

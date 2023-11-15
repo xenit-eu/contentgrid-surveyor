@@ -1,4 +1,7 @@
 surveyor:
+  resource-linkage:
+    captain:
+      url: 'http://localhost:9086/internal/runtime-platforms/{sourceSystem}/types/{resourceType}/resources/{resourceId}'
   systems:
     pegman:
       test:
