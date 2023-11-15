@@ -5,11 +5,11 @@ import com.contentgrid.surveyor.application.surveyor.autoconfigure.OptionalR2dbc
 import com.contentgrid.surveyor.drivers.schedule.SurveyorSchedulerConfiguration;
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
 import com.contentgrid.surveyor.infrastructure.config.spring.SurveyorSpringConfiguration;
-import com.contentgrid.surveyor.infrastructure.source.pegman.SurveyorSourceMetricsPegmanConfiguration;
+import com.contentgrid.surveyor.infrastructure.collector.pegman.SurveyorMeasurementCollectorPegmanConfiguration;
 import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
 import com.contentgrid.surveyor.spi.config.FindMeasurementAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
-import com.contentgrid.surveyor.spi.source.EventMetricsSource;
+import com.contentgrid.surveyor.spi.collector.MeasurementCollector;
 import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
 import com.contentgrid.surveyor.spi.storage.LastMeasurementSpiPort;
 import com.contentgrid.surveyor.spi.storage.StoreMeasurementSpiPort;
@@ -28,7 +28,7 @@ import org.springframework.context.annotation.Import;
         SurveyorWebConfiguration.class,
         SurveyorSchedulerConfiguration.class,
         SurveyorSpringConfiguration.class,
-        SurveyorSourceMetricsPegmanConfiguration.class
+        SurveyorMeasurementCollectorPegmanConfiguration.class
 })
 @ImportAutoConfiguration(value = OptionalR2dbcAutoConfiguration.class, exclude = {
         R2dbcAutoConfiguration.class})
@@ -40,10 +40,11 @@ public class ContentgridSurveyorApplication {
 
     @Bean
     PullMetrics pullMetrics(FindCollectionConfigurationsSpiPort findCollectionConfigurationsSpiPort,
-            List<? extends EventMetricsSource> metricsSources,
+            List<? extends MeasurementCollector> measurementCollectors,
             StoreMeasurementSpiPort storeMeasurementSpiPort,
             LastMeasurementSpiPort lastMeasurementSpiPort) {
-        return new PullMetricsUseCase(metricsSources, findCollectionConfigurationsSpiPort, storeMeasurementSpiPort,
+        return new PullMetricsUseCase(measurementCollectors, findCollectionConfigurationsSpiPort,
+                storeMeasurementSpiPort,
                 lastMeasurementSpiPort);
     }
 

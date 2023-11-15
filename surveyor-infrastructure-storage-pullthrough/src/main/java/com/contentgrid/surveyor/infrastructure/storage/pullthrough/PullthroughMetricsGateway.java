@@ -4,8 +4,8 @@ import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
 import com.contentgrid.surveyor.spi.resources.Metric;
-import com.contentgrid.surveyor.spi.source.EventMetricsSource;
-import com.contentgrid.surveyor.spi.config.MeasurementCollectionConfig;
+import com.contentgrid.surveyor.spi.collector.MeasurementCollector;
+import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
 import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
 import com.contentgrid.surveyor.spi.storage.Measurement;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
@@ -18,7 +18,7 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class PullthroughMetricsGateway implements AggregateMeasurementsSpiPort {
 
-    private final List<? extends EventMetricsSource> metricSources;
+    private final List<? extends MeasurementCollector> measurementCollectors;
     private final FindCollectionConfigurationsSpiPort findCollectionConfigurationsSpiPort;
 
     @Override
@@ -36,20 +36,20 @@ public class PullthroughMetricsGateway implements AggregateMeasurementsSpiPort {
             throw new IllegalArgumentException("Pullthrough gateway can not aggregate metrics");
         }
 
-        var collectedMetrics = Flux.fromIterable(metricSources)
+        var collectedMetrics = Flux.fromIterable(measurementCollectors)
                 .flatMap(source -> Flux.fromIterable(
                                         findCollectionConfigurationsSpiPort.findConfigurationsFor(source.getSystemType())
                                 )
                                 .map(config -> new ConfigAndSource(config, source))
                 )
                 .flatMap(configAndSource -> {
-                    var maybeDefinition = configAndSource.metricsSource()
+                    var maybeDefinition = configAndSource.measurementCollector()
                             .resourceDefinition(configAndSource.config())
                             .filter(Predicate.isEqual(resourceDefinition));
 
                     if (maybeDefinition.isPresent()) {
-                        return configAndSource.metricsSource()
-                                .collectMetricsForBackfilling(configAndSource.config(), interval);
+                        return configAndSource.measurementCollector()
+                                .collectMeasurementsForBackfilling(configAndSource.config(), interval);
                     }
                     return Flux.empty();
                 });
@@ -63,8 +63,8 @@ public class PullthroughMetricsGateway implements AggregateMeasurementsSpiPort {
     }
 
     private record ConfigAndSource(
-            MeasurementCollectionConfig config,
-            EventMetricsSource metricsSource
+            MetricCollectionConfig config,
+            MeasurementCollector measurementCollector
     ) {
 
     }

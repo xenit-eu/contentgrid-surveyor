@@ -32,8 +32,8 @@ include 'surveyor-infrastructure-storage-inmemory'
 include 'surveyor-infrastructure-storage-pullthrough'
 include 'surveyor-infrastructure-storage-data-jdbc'
 include 'surveyor-infrastructure-storage-tests'
-include 'surveyor-infrastructure-source-metrics-prometheus'
-include 'surveyor-infrastructure-source-metrics-pegman'
+include 'surveyor-infrastructure-collector-prometheus'
+include 'surveyor-infrastructure-collector-pegman'
 
 include 'surveyor-usecases'
 

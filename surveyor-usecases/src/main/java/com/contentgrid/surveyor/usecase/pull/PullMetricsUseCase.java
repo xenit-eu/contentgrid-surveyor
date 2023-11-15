@@ -3,12 +3,9 @@ package com.contentgrid.surveyor.usecase.pull;
 import com.contentgrid.surveyor.api.pull.PullMetrics;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
-import com.contentgrid.surveyor.spi.resources.Metric;
-import com.contentgrid.surveyor.spi.resources.ResourceIdentity;
-import com.contentgrid.surveyor.spi.source.CollectedMetric;
-import com.contentgrid.surveyor.spi.source.EventMetricsSource;
-import com.contentgrid.surveyor.spi.source.EventMetricsSource.CollectionFailedException;
-import com.contentgrid.surveyor.spi.config.MeasurementCollectionConfig;
+import com.contentgrid.surveyor.spi.collector.CollectedMeasurement;
+import com.contentgrid.surveyor.spi.collector.MeasurementCollector;
+import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
 import com.contentgrid.surveyor.spi.storage.Measurement;
 import com.contentgrid.surveyor.spi.storage.LastMeasurementSpiPort;
 import com.contentgrid.surveyor.spi.storage.StoreMeasurementSpiPort;
@@ -30,17 +27,18 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class PullMetricsUseCase implements PullMetrics {
 
-    private final List<? extends EventMetricsSource> metricSources;
+    private final List<? extends MeasurementCollector> measurementCollectors;
     private final FindCollectionConfigurationsSpiPort findCollectionConfigurationsSpiPort;
     private final StoreMeasurementSpiPort storeMeasurementSpiPort;
     private final LastMeasurementSpiPort lastMeasurementSpiPort;
 
     @Override
     public void pullMetrics() {
-        for (EventMetricsSource metricSource : metricSources) {
-            var configs = findCollectionConfigurationsSpiPort.findConfigurationsFor(metricSource.getSystemType());
+        for (MeasurementCollector measurementCollector : measurementCollectors) {
+            var configs = findCollectionConfigurationsSpiPort.findConfigurationsFor(
+                    measurementCollector.getSystemType());
             for (var collectionConfig : configs) {
-                var maybeResourceDefinition = metricSource.resourceDefinition(collectionConfig);
+                var maybeResourceDefinition = measurementCollector.resourceDefinition(collectionConfig);
                 if (maybeResourceDefinition.isEmpty()) {
                     continue;
                 }
@@ -70,13 +68,14 @@ public class PullMetricsUseCase implements PullMetrics {
                                 nextInterval = TimeInterval.between(nextInterval.getStartTime(), referenceTime)
                                         .alignedToMultipleOf(collectionConfig.interval());
                                 return Flux.fromStream(nextInterval.chunkedBy(Duration.ofDays(1)))
-                                        .concatMap(interval -> tryPullMetricsBulk(collectionConfig, metricSource,
-                                                interval))
+                                        .concatMap(
+                                                interval -> tryPullMetricsBulk(collectionConfig, measurementCollector,
+                                                        interval))
                                         .then();
                             }
 
                             return Mono.just(nextInterval).expand(interval -> {
-                                return tryPullMetrics(collectionConfig, metricSource, interval)
+                                return tryPullMetrics(collectionConfig, measurementCollector, interval)
                                         .flatMap(result -> result.continueLoop ? Mono.just(interval.nextInterval())
                                                 : Mono.empty());
                             }).then();
@@ -90,44 +89,45 @@ public class PullMetricsUseCase implements PullMetrics {
     }
 
 
-    private Mono<PullResult> tryPullMetrics(MeasurementCollectionConfig measurementCollectionConfig,
-            EventMetricsSource metricSource,
+    private Mono<PullResult> tryPullMetrics(MetricCollectionConfig metricCollectionConfig,
+            MeasurementCollector measurementCollector,
             TimeInterval timeInterval) {
-        return tryPullMetricsGeneric(metricSource, measurementCollectionConfig, timeInterval,
-                (source, config, interval) -> source.collectMetrics(config, interval.getStartTime()));
+        return tryPullMetricsGeneric(measurementCollector, metricCollectionConfig, timeInterval,
+                (source, config, interval) -> source.collectMeasurements(config, interval.getStartTime()));
     }
 
-    private Mono<PullResult> tryPullMetricsBulk(MeasurementCollectionConfig measurementCollectionConfig,
-            EventMetricsSource metricSource,
+    private Mono<PullResult> tryPullMetricsBulk(MetricCollectionConfig metricCollectionConfig,
+            MeasurementCollector measurementCollector,
             TimeInterval timeInterval) {
-        return tryPullMetricsGeneric(metricSource, measurementCollectionConfig, timeInterval,
-                EventMetricsSource::collectMetricsForBackfilling);
+        return tryPullMetricsGeneric(measurementCollector, metricCollectionConfig, timeInterval,
+                MeasurementCollector::collectMeasurementsForBackfilling);
     }
 
     @FunctionalInterface
     interface MetricCollector {
 
-        Publisher<CollectedMetric> collect(EventMetricsSource metricsSource, MeasurementCollectionConfig config,
+        Publisher<CollectedMeasurement> collect(MeasurementCollector measurementCollector,
+                MetricCollectionConfig config,
                 TimeInterval timeInterval);
     }
 
-    private Mono<PullResult> tryPullMetricsGeneric(EventMetricsSource metricSource,
-            MeasurementCollectionConfig measurementCollectionConfig, TimeInterval timeInterval,
+    private Mono<PullResult> tryPullMetricsGeneric(MeasurementCollector measurementCollector,
+            MetricCollectionConfig metricCollectionConfig, TimeInterval timeInterval,
             MetricCollector metricCollector) {
         if (!Instant.now().isAfter(timeInterval.getEndTime())) {
             log.debug("Not pulling new metrics from source {} with query '{}' as we are still within the interval {}",
-                    metricSource, measurementCollectionConfig.query(),
+                    measurementCollector, metricCollectionConfig.query(),
                     timeInterval);
             return Mono.just(PullResult.TOO_SOON);
         }
 
-        var resourceDefinition = metricSource.resourceDefinition(measurementCollectionConfig).orElseThrow();
+        var resourceDefinition = measurementCollector.resourceDefinition(metricCollectionConfig).orElseThrow();
 
-        var metrics = Flux.from(metricCollector.collect(metricSource, measurementCollectionConfig, timeInterval))
+        var metrics = Flux.from(metricCollector.collect(measurementCollector, metricCollectionConfig, timeInterval))
                 .checkpoint(
                         "Metrics pull from source %s with query '%s' over interval '%s' [PullMetricsUseCase]".formatted(
-                                metricSource,
-                                measurementCollectionConfig.query(), timeInterval))
+                                measurementCollector,
+                                metricCollectionConfig.query(), timeInterval))
                 .map(metric -> new Measurement(
                         metric.timeInterval(),
                         resourceDefinition.createMetric(metric.resourceId(), Map.of()),
@@ -142,8 +142,8 @@ public class PullMetricsUseCase implements PullMetrics {
                                 timeInterval);
                     } else {
                         log.info("Pulled new metrics from source {} with query '{}' (interval {}): {} datapoints",
-                                metricSource,
-                                measurementCollectionConfig.query(), timeInterval,
+                                measurementCollector,
+                                metricCollectionConfig.query(), timeInterval,
                                 metricSize.get());
                     }
                 })
