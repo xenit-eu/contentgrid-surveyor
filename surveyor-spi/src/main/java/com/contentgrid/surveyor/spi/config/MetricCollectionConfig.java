@@ -15,7 +15,6 @@ public record MetricCollectionConfig(
         ResourceType resourceType,
         @NonNull
         MetricName metric,
-        @NonNull
         String resourceIdLabel,
         @NonNull
         String query,

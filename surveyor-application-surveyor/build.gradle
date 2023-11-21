@@ -17,6 +17,7 @@ dependencies {
 	implementation project(':surveyor-infrastructure-storage-data-r2dbc')
 	implementation project(':surveyor-infrastructure-collector-pegman')
 	implementation project(':surveyor-infrastructure-config-spring')
+	implementation project(':surveyor-infrastructure-resource-linkage-captain')
 
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
