@@ -8,7 +8,6 @@ javaPlatform {
 
 dependencies {
     api platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
-    api platform("org.testcontainers:testcontainers-bom:1.19.3")
 
     constraints {
         api 'com.jayway.restassured:rest-assured:2.9.0'
