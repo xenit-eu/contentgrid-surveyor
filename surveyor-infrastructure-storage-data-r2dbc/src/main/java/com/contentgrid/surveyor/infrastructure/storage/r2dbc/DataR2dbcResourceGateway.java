@@ -19,7 +19,7 @@ public class DataR2dbcResourceGateway implements CreateMetricSpiPort, FindUnlink
 
     @Override
     public Flux<ResourceIdentity> findUnlinkedResources() {
-        return resourceIdentityRepository.findAllByLinkOrgRefIsNull()
+        return resourceIdentityRepository.findAllByExcludedIsFalseAndLinkOrgRefIsNull()
                 .map(ResourceIdentityEntity::toResourceIdentity);
     }
 

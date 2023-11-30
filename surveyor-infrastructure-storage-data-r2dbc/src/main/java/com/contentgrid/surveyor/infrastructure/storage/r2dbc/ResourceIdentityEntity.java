@@ -36,6 +36,8 @@ public class ResourceIdentityEntity implements Persistable<Long> {
     @NonNull
     String resourceId;
 
+    boolean excluded;
+
     String linkOrgRef;
 
     String linkProjectRef;

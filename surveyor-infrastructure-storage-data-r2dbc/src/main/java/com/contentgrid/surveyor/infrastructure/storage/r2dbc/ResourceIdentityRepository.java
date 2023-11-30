@@ -16,7 +16,7 @@ public interface ResourceIdentityRepository extends ReactiveCrudRepository<Resou
             """)
     Mono<ResourceIdentityEntity> upsert(ResourceIdentity resource);
 
-    Flux<ResourceIdentityEntity> findAllByLinkOrgRefIsNull();
+    Flux<ResourceIdentityEntity> findAllByExcludedIsFalseAndLinkOrgRefIsNull();
 
     @Query("""
             select * from resource_identity ri
