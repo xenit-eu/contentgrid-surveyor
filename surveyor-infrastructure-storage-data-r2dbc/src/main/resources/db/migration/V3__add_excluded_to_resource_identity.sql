@@ -1,0 +1,1 @@
+ALTER TABLE "resource_identity" ADD COLUMN "excluded" boolean NOT NULL DEFAULT false;
