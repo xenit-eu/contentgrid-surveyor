@@ -1,0 +1,105 @@
+package com.contentgrid.surveyor.application.exporter.postgres.boot;
+
+import com.contentgrid.surveyor.application.exporter.postgres.boot.ContentgridSurveyorExporterPostgresApplication.SurveyorExporterProperties;
+import com.contentgrid.surveyor.application.exporter.postgres.queries.SqlQueryCollector;
+import com.contentgrid.surveyor.application.exporter.postgres.queries.SqlQueryExecutor;
+import com.contentgrid.surveyor.application.exporter.postgres.connections.DatabaseConnectionManager;
+import com.contentgrid.surveyor.application.exporter.postgres.MetricsController;
+import com.contentgrid.surveyor.application.exporter.postgres.queries.QueryMetricProperties;
+import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.prometheus.metrics.exporter.common.PrometheusScrapeHandler;
+import io.prometheus.metrics.model.registry.MultiCollector;
+import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Executor;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+
+@SpringBootApplication
+@Slf4j
+@EnableConfigurationProperties(SurveyorExporterProperties.class)
+public class ContentgridSurveyorExporterPostgresApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ContentgridSurveyorExporterPostgresApplication.class, args);
+    }
+
+    @Bean
+    KubernetesClient kubernetesClient(SurveyorExporterProperties properties) {
+        var config = Optional.ofNullable(properties.getKubernetes()).orElseGet(() -> {
+            log.warn("Using autoconfiguration for kubernetes client");
+            return Config.autoConfigure(null);
+        });
+        return new KubernetesClientBuilder().withConfig(config).build();
+    }
+
+    @ConfigurationProperties(prefix = "surveyor.exporter")
+    @Data
+    @AllArgsConstructor
+    static class SurveyorExporterProperties {
+        private Config kubernetes;
+        @NonNull
+        private Discovery discovery;
+
+        @NonNull
+        private List<QueryMetricProperties> metrics;
+
+        @Data
+        @AllArgsConstructor
+        private static class Discovery {
+            @NonNull
+            private Map<String, String> matchLabels;
+
+            @NonNull
+            private Duration resync;
+        }
+    }
+
+    @Bean
+    DatabaseConnectionManager databaseConnectionManager(KubernetesClient kubernetesClient, SurveyorExporterProperties exporterProperties) {
+        var informer = kubernetesClient.secrets()
+                .withLabels(exporterProperties.getDiscovery().getMatchLabels())
+                .runnableInformer(exporterProperties.getDiscovery().getResync().toMillis());
+
+        return new DatabaseConnectionManager(informer);
+    }
+
+    @Bean
+    SqlQueryCollector sqlQueryCollector(DatabaseConnectionManager connectionManager, SurveyorExporterProperties exporterProperties) {
+        return new SqlQueryCollector(
+                connectionManager,
+                exporterProperties.getMetrics()
+                        .stream()
+                        .map(SqlQueryExecutor::new)
+                        .toList()
+        );
+    }
+
+    @Bean
+    PrometheusRegistry prometheusRegistry(List<MultiCollector> collectors) {
+        var registry = new PrometheusRegistry();
+
+        collectors.forEach(registry::register);
+        return registry;
+    }
+
+    @Bean
+    MetricsController metricsController(PrometheusRegistry registry, Executor executor) {
+        return new MetricsController(new PrometheusScrapeHandler(registry), executor);
+    }
+
+
+}

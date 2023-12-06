@@ -1,0 +1,38 @@
+surveyor.exporter:
+  discovery:
+    resync: 30s
+    matchLabels:
+      '[app.contentgrid.com/service-type]': api
+  metrics:
+    - metric-name: contentgrid_entity_database
+      key-labels:
+        - resource_id
+        - entity_name
+      values:
+        - disk_size_bytes
+        - estimated_count
+      query: |
+        WITH entities_and_tables AS (
+          SELECT 
+              c.oid,
+              -- Strip off everything after double underscore: those are join tables for many-to-many relations
+              -- and should be accounted to their owning entity
+              COALESCE(substring(c.relname FROM '^(.+)__'), c.relname) AS entity_name, 
+              c.relname !~ '^(.+)__' AS is_primary,
+              -- If the table was never analyzed, reltuples will be -1, it's forced to 0 here,
+              -- so we don't have negative amounts
+              GREATEST(c.reltuples, 0) AS estimated_count
+          FROM pg_catalog.pg_class c
+            LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+          WHERE 
+            n.nspname = 'public'
+            -- r -> ordinary table; p -> partitioned table
+            AND c.relkind IN ('r', 'p')
+            AND c.relname != 'flyway_schema_history'
+        ) SELECT 
+            current_database() AS resource_id,
+            entity_name,
+            sum(pg_total_relation_size(oid)) AS disk_size_bytes,
+            sum(CASE WHEN is_primary THEN estimated_count ELSE 0 END) AS estimated_count
+        FROM entities_and_tables
+        GROUP BY entity_name

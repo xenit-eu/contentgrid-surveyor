@@ -16,6 +16,9 @@ rootProject.name = 'contentgrid-surveyor'
 
 include 'surveyor-application-surveyor'
 include 'surveyor-application-pegman'
+
+include 'surveyor-application-exporter-postgres'
+
 include 'surveyor-dependencies'
 
 include 'surveyor-api'
