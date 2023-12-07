@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.application.exporter.postgres;
+package com.contentgrid.surveyor.application.exporter.postgres.boot;
 
 import io.prometheus.metrics.exporter.common.PrometheusHttpExchange;
 import io.prometheus.metrics.exporter.common.PrometheusHttpRequest;

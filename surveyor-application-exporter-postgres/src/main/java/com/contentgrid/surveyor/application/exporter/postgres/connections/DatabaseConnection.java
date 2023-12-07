@@ -1,8 +1,9 @@
 package com.contentgrid.surveyor.application.exporter.postgres.connections;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.function.Function;
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,19 +11,29 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class DatabaseConnection {
+
+    private final String url;
+    private final ObservationRegistry observationRegistry;
     private final DataSource dataSource;
 
-
     public <T> T lease(ConnectionQuerier<T> querier) {
-        try (var dbConnection = dataSource.getConnection()){
-            log.info("Checked out connection {}: {}", this, dbConnection);
-            return querier.query(dbConnection);
+        var leaseObservation = Observation.createNotStarted("database.lease", observationRegistry);
+        leaseObservation.highCardinalityKeyValue("db.url", url);
+        return leaseObservation.scoped(() -> {
+            try (
+                    var dbConnection = Observation.createNotStarted("database.connect", observationRegistry)
+                            .observeChecked(() -> dataSource.getConnection())
+            ) {
+                log.trace("Checked out connection {}: {}", this, dbConnection);
+                return Observation.createNotStarted("database.query", observationRegistry)
+                        .observeChecked(() -> querier.query(dbConnection));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            } finally {
+                log.trace("Released connection {}", this);
+            }
 
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } finally {
-            log.info("Released connection {}", this);
-        }
+        });
     }
 
     public interface ConnectionQuerier<T> {

@@ -1,24 +1,18 @@
 package com.contentgrid.surveyor.application.exporter.postgres.queries;
 
 import com.contentgrid.surveyor.application.exporter.postgres.connections.DatabaseConnectionManager;
-import com.contentgrid.surveyor.application.exporter.postgres.queries.SqlQueryExecutor.DatapointSnapshot;
 import io.prometheus.metrics.model.registry.MultiCollector;
 import io.prometheus.metrics.model.snapshots.GaugeSnapshot;
 import io.prometheus.metrics.model.snapshots.GaugeSnapshot.GaugeDataPointSnapshot;
 import io.prometheus.metrics.model.snapshots.MetricMetadata;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
-import io.prometheus.metrics.model.snapshots.MetricSnapshot.Builder;
 import io.prometheus.metrics.model.snapshots.MetricSnapshots;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -32,18 +26,19 @@ public class SqlQueryCollector implements MultiCollector {
     @Override
     public MetricSnapshots collect() {
         return Flux.fromStream(connectionManager.connections())
-                .subscribeOn(scheduler)
-                .map(connection -> connection.lease(dbConn -> {
-                    return executors.stream()
-                            .flatMap(executor -> {
-                                try {
-                                    return executor.collect(dbConn);
-                                } catch (SQLException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            })
-                            .toList();
-                }))
+                .flatMap(connection -> Mono.fromCallable(() -> connection.lease(dbConn -> {
+                                    return executors.stream()
+                                            .flatMap(executor -> {
+                                                try {
+                                                    return executor.collect(dbConn);
+                                                } catch (SQLException e) {
+                                                    throw new RuntimeException(e);
+                                                }
+                                            })
+                                            .toList();
+                                }))
+                                .subscribeOn(scheduler)
+                )
                 .flatMap(Flux::fromIterable)
                 .collectMultimap(snapshot -> snapshot.metadata().getName())
                 .map(snapshots -> new MetricSnapshots(

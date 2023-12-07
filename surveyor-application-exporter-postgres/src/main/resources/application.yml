@@ -1,3 +1,5 @@
+logging.level:
+  com.contentgrid: DEBUG
 surveyor.exporter:
   discovery:
     resync: 30s
@@ -36,3 +38,13 @@ surveyor.exporter:
             sum(CASE WHEN is_primary THEN estimated_count ELSE 0 END) AS estimated_count
         FROM entities_and_tables
         GROUP BY entity_name
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  tracing:
+    sampling:
+      probability: 1.0

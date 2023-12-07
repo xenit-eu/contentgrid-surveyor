@@ -1,14 +1,14 @@
 package com.contentgrid.surveyor.application.exporter.postgres.boot;
 
 import com.contentgrid.surveyor.application.exporter.postgres.boot.ContentgridSurveyorExporterPostgresApplication.SurveyorExporterProperties;
+import com.contentgrid.surveyor.application.exporter.postgres.connections.DatabaseConnectionManager;
+import com.contentgrid.surveyor.application.exporter.postgres.queries.QueryMetricProperties;
 import com.contentgrid.surveyor.application.exporter.postgres.queries.SqlQueryCollector;
 import com.contentgrid.surveyor.application.exporter.postgres.queries.SqlQueryExecutor;
-import com.contentgrid.surveyor.application.exporter.postgres.connections.DatabaseConnectionManager;
-import com.contentgrid.surveyor.application.exporter.postgres.MetricsController;
-import com.contentgrid.surveyor.application.exporter.postgres.queries.QueryMetricProperties;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.micrometer.observation.ObservationRegistry;
 import io.prometheus.metrics.exporter.common.PrometheusScrapeHandler;
 import io.prometheus.metrics.model.registry.MultiCollector;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
@@ -20,7 +20,6 @@ import java.util.concurrent.Executor;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -69,12 +68,16 @@ public class ContentgridSurveyorExporterPostgresApplication {
     }
 
     @Bean
-    DatabaseConnectionManager databaseConnectionManager(KubernetesClient kubernetesClient, SurveyorExporterProperties exporterProperties) {
+    DatabaseConnectionManager databaseConnectionManager(
+            KubernetesClient kubernetesClient,
+            SurveyorExporterProperties exporterProperties,
+            ObservationRegistry observationRegistry
+    ) {
         var informer = kubernetesClient.secrets()
                 .withLabels(exporterProperties.getDiscovery().getMatchLabels())
                 .runnableInformer(exporterProperties.getDiscovery().getResync().toMillis());
 
-        return new DatabaseConnectionManager(informer);
+        return new DatabaseConnectionManager(informer, observationRegistry);
     }
 
     @Bean
@@ -88,6 +91,7 @@ public class ContentgridSurveyorExporterPostgresApplication {
         );
     }
 
+
     @Bean
     PrometheusRegistry prometheusRegistry(List<MultiCollector> collectors) {
         var registry = new PrometheusRegistry();
@@ -100,6 +104,4 @@ public class ContentgridSurveyorExporterPostgresApplication {
     MetricsController metricsController(PrometheusRegistry registry, Executor executor) {
         return new MetricsController(new PrometheusScrapeHandler(registry), executor);
     }
-
-
 }
