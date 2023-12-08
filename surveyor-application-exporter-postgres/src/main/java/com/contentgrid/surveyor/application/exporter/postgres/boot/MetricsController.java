@@ -62,6 +62,11 @@ public class MetricsController {
         public String getMethod() {
             return request.getMethod().name();
         }
+
+        @Override
+        public String getRequestPath() {
+            return request.getURI().getPath();
+        }
     }
 
     @RequiredArgsConstructor
