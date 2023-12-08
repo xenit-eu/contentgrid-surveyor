@@ -10,6 +10,7 @@ dependencies {
     api platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
 
     constraints {
+        api 'org.bouncycastle:bcpkix-jdk15on:1.70'
         api 'com.jayway.restassured:rest-assured:2.9.0'
         api 'com.contentgrid.hateoas:contentgrid-hateoas-spring:0.0.1-SNAPSHOT'
     }
