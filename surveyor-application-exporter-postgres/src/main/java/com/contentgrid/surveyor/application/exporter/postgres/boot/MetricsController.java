@@ -15,7 +15,6 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -27,7 +26,10 @@ public class MetricsController {
     private final PrometheusScrapeHandler scrapeHandler;
     private final Executor executor;
 
-    @GetMapping("/metrics")
+    @GetMapping({
+            "/metrics",
+            "/actuator/prometheus"
+    })
     public Mono<Void> metrics(ServerWebExchange exchange) throws IOException {
         var httpExchange = new HttpExchangeAdapter(exchange.getRequest(), exchange.getResponse());
 
@@ -36,7 +38,7 @@ public class MetricsController {
                 scrapeHandler.handleRequest(httpExchange);
             } catch (IOException e) {
                 httpExchange.handleException(e);
-            } catch(RuntimeException e) {
+            } catch (RuntimeException e) {
                 httpExchange.handleException(e);
             }
         });
