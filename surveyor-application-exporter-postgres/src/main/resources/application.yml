@@ -1,5 +1,3 @@
-logging.level:
-  com.contentgrid: DEBUG
 surveyor.exporter:
   discovery:
     resync: 30s
@@ -41,6 +39,8 @@ surveyor.exporter:
 
 
 management:
+  server:
+    port: 8081
   endpoints:
     web:
       exposure:

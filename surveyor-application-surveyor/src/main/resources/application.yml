@@ -1,3 +1,10 @@
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 surveyor:
   metrics:
     - type: pegman
