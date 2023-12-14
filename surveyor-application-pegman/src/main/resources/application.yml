@@ -4,6 +4,14 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: https://auth.contentgrid.com/realms/contentgrid
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
 surveyor:
   metrics:
     - type: scaleway:prometheus

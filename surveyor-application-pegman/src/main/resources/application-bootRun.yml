@@ -8,10 +8,6 @@ server:
 management:
   server:
     port: 9188
-  endpoints:
-    web:
-      exposure:
-        include: "*"
 
 surveyor:
   systems:
