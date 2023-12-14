@@ -1,3 +1,9 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.contentgrid.com/realms/contentgrid
 surveyor:
   metrics:
     - type: scaleway:prometheus
