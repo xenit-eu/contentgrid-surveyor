@@ -5,16 +5,16 @@ import com.contentgrid.surveyor.api.resources.LinkResources;
 import com.contentgrid.surveyor.application.surveyor.autoconfigure.OptionalR2dbcAutoConfiguration;
 import com.contentgrid.surveyor.drivers.schedule.SurveyorSchedulerConfiguration;
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
+import com.contentgrid.surveyor.infrastructure.collector.pegman.SurveyorMeasurementCollectorPegmanConfiguration;
 import com.contentgrid.surveyor.infrastructure.config.spring.SurveyorSpringConfiguration;
 import com.contentgrid.surveyor.infrastructure.resourcelinkage.captain.SurveyorResourceLinkageCaptainConfiguration;
-import com.contentgrid.surveyor.infrastructure.collector.pegman.SurveyorMeasurementCollectorPegmanConfiguration;
+import com.contentgrid.surveyor.spi.collector.MeasurementCollector;
 import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
 import com.contentgrid.surveyor.spi.config.FindMeasurementAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
 import com.contentgrid.surveyor.spi.resources.FindUnlinkedResourcesSpiPort;
 import com.contentgrid.surveyor.spi.resources.LinkResourceSpiPort;
 import com.contentgrid.surveyor.spi.resources.LookupResourceLinkSpiPort;
-import com.contentgrid.surveyor.spi.collector.MeasurementCollector;
 import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
 import com.contentgrid.surveyor.spi.storage.LastMeasurementSpiPort;
 import com.contentgrid.surveyor.spi.storage.StoreMeasurementSpiPort;
@@ -28,6 +28,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 
 @SpringBootApplication
 @Import({
@@ -75,5 +79,16 @@ public class ContentgridSurveyorApplication {
             AggregateMeasurementsSpiPort aggregateMeasurementsSpiPort) {
         return new FindMetricsUseCase(resourceAggregationConfigurationSpiPort, aggregateMeasurementsSpiPort,
                 findResourceDefinitionsSpiPort);
+    }
+
+    @Bean
+    public ReactiveOAuth2AuthorizedClientManager authorizedClientManager(
+            ReactiveClientRegistrationRepository clientRegistrationRepository,
+            ReactiveOAuth2AuthorizedClientService authorizedClientService
+    ) {
+        return new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
+                clientRegistrationRepository,
+                authorizedClientService
+        );
     }
 }

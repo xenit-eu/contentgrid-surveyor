@@ -13,6 +13,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.hateoas.config.HypermediaWebClientConfigurer;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration(proxyBeanMethods = false)
@@ -26,6 +28,7 @@ public class SurveyorMeasurementCollectorPegmanConfiguration {
 
     @Bean
     List<PegmanMeasurementCollector> pegmanMeasurementCollectors(
+            ReactiveOAuth2AuthorizedClientManager oAuth2AuthorizedClientManager,
             Map<String, SurveyorPegmanSourceProperties> pegmanSourceProperties,
             WebClient.Builder webclientBuilder,
             HypermediaWebClientConfigurer webClientConfigurer,
@@ -40,6 +43,7 @@ public class SurveyorMeasurementCollectorPegmanConfiguration {
                             .username(pegmanProperties.username())
                             .password(pegmanProperties.password())
                             .bearer(pegmanProperties.bearer())
+                            .authorizedClientManager(oAuth2AuthorizedClientManager)
                             .build();
                     return new PegmanMeasurementCollector(webclientBuilder, apiConfig, webClientConfigurer,
                             objectMapper, pegmanProperties.name(),

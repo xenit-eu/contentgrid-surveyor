@@ -1,8 +1,10 @@
 package com.contentgrid.surveyor.application.pegman.boot;
 
+import static org.springframework.security.oauth2.core.authorization.OAuth2ReactiveAuthorizationManagers.hasScope;
+
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
-import com.contentgrid.surveyor.infrastructure.config.spring.SurveyorSpringConfiguration;
 import com.contentgrid.surveyor.infrastructure.collector.prometheus.SurveyorMeasurementCollectorPrometheusConfiguration;
+import com.contentgrid.surveyor.infrastructure.config.spring.SurveyorSpringConfiguration;
 import com.contentgrid.surveyor.infrastructure.storage.pullthrough.SurveyorStoragePullthroughConfiguration;
 import com.contentgrid.surveyor.spi.config.FindMeasurementAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
@@ -10,8 +12,6 @@ import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
 import com.contentgrid.surveyor.usecase.metrics.FindMetricsUseCase;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.actuate.autoconfigure.security.reactive.EndpointRequest;
-import org.springframework.boot.actuate.autoconfigure.security.reactive.EndpointRequest.EndpointServerWebExchangeMatcher;
-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest.EndpointRequestMatcher;
 import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.boot.actuate.info.InfoEndpoint;
 import org.springframework.boot.actuate.metrics.MetricsEndpoint;
@@ -25,8 +25,6 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.util.matcher.AndServerWebExchangeMatcher;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher;
-
-import static org.springframework.security.oauth2.core.authorization.OAuth2ReactiveAuthorizationManagers.hasScope;
 
 @SpringBootApplication
 @Import({
