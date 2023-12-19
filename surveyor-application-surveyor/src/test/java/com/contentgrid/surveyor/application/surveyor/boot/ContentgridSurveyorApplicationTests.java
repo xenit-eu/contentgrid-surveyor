@@ -5,7 +5,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(properties = {
 		"surveyor.resource-linkage.captain.url=none"
-})
+}, classes = TestContentgridSurveyorApplication.class)
 class ContentgridSurveyorApplicationTests {
 
 	@Test

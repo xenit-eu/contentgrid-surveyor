@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.NonNull;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +29,7 @@ public class SurveyorMeasurementCollectorPegmanConfiguration {
 
     @Bean
     List<PegmanMeasurementCollector> pegmanMeasurementCollectors(
-            ReactiveOAuth2AuthorizedClientManager oAuth2AuthorizedClientManager,
+            ObjectProvider<ReactiveOAuth2AuthorizedClientManager> oAuth2AuthorizedClientManager,
             Map<String, SurveyorPegmanSourceProperties> pegmanSourceProperties,
             WebClient.Builder webclientBuilder,
             HypermediaWebClientConfigurer webClientConfigurer,
@@ -37,14 +38,16 @@ public class SurveyorMeasurementCollectorPegmanConfiguration {
         return pegmanSourceProperties.values()
                 .stream()
                 .map(pegmanProperties -> {
-                    var apiConfig = PegmanApiConfig.builder()
+                    var apiConfigBuilder = PegmanApiConfig.builder()
                             .url(pegmanProperties.url())
                             .headers(Optional.ofNullable(pegmanProperties.headers()).orElse(Map.of()))
                             .username(pegmanProperties.username())
                             .password(pegmanProperties.password())
-                            .bearer(pegmanProperties.bearer())
-                            .authorizedClientManager(oAuth2AuthorizedClientManager)
-                            .build();
+                            .bearer(pegmanProperties.bearer());
+
+                    oAuth2AuthorizedClientManager.ifAvailable(apiConfigBuilder::authorizedClientManager);
+
+                    var apiConfig = apiConfigBuilder.build();
                     return new PegmanMeasurementCollector(webclientBuilder, apiConfig, webClientConfigurer,
                             objectMapper, pegmanProperties.name(),
                             pegmanProperties.type());
