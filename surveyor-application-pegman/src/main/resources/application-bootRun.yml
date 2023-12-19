@@ -5,7 +5,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8082/realms/contentgrid-dev
+          issuer-uri: http://${DOCKER_HOST_IP:172.17.0.1}:8082/realms/contentgrid-dev
 
 server:
   port: 9088
