@@ -8,6 +8,7 @@ plugins {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	//implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
 	implementation project(':surveyor-drivers-web')
@@ -21,12 +22,15 @@ dependencies {
 
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
+	testRuntimeOnly 'org.testcontainers:r2dbc'
+
 	developmentOnly project(':surveyor-testcontainers')
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.testcontainers:postgresql'
+
 }
 
 bootBuildImage {
