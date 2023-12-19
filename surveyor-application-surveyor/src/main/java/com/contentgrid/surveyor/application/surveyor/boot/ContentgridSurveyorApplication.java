@@ -2,6 +2,7 @@ package com.contentgrid.surveyor.application.surveyor.boot;
 
 import com.contentgrid.surveyor.api.pull.PullMetrics;
 import com.contentgrid.surveyor.api.resources.LinkResources;
+import com.contentgrid.surveyor.application.surveyor.autoconfigure.OptionalR2dbcAutoConfiguration;
 import com.contentgrid.surveyor.drivers.schedule.SurveyorSchedulerConfiguration;
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
 import com.contentgrid.surveyor.infrastructure.collector.pegman.SurveyorMeasurementCollectorPegmanConfiguration;
@@ -22,7 +23,9 @@ import com.contentgrid.surveyor.usecase.pull.PullMetricsUseCase;
 import com.contentgrid.surveyor.usecase.resources.LinkResourcesUseCase;
 import java.util.List;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -40,8 +43,8 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
         SurveyorMeasurementCollectorPegmanConfiguration.class,
         SurveyorResourceLinkageCaptainConfiguration.class
 })
-//@ImportAutoConfiguration(value = OptionalR2dbcAutoConfiguration.class, exclude = {
-//        R2dbcAutoConfiguration.class})
+@ImportAutoConfiguration(value = OptionalR2dbcAutoConfiguration.class, exclude = {
+        R2dbcAutoConfiguration.class})
 public class ContentgridSurveyorApplication {
 
     public static void main(String[] args) {
