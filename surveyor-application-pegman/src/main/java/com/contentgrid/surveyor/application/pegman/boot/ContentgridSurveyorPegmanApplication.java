@@ -1,6 +1,6 @@
 package com.contentgrid.surveyor.application.pegman.boot;
 
-import static org.springframework.security.oauth2.core.authorization.OAuth2ReactiveAuthorizationManagers.hasScope;
+import static org.springframework.security.authorization.AuthorityReactiveAuthorizationManager.hasAuthority;
 
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
 import com.contentgrid.surveyor.infrastructure.collector.prometheus.SurveyorMeasurementCollectorPrometheusConfiguration;
@@ -22,6 +22,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtGrantedAuthoritiesConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.util.matcher.AndServerWebExchangeMatcher;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher;
@@ -48,9 +51,21 @@ public class ContentgridSurveyorPegmanApplication {
                 findResourceDefinitionsSpiPort);
     }
 
+    @Bean
+    ReactiveJwtAuthenticationConverter reactiveJwtAuthenticationConverter() {
+        var grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        grantedAuthoritiesConverter.setAuthorityPrefix("ENTITLEMENT_");
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("entitlements");
+
+        var converter = new ReactiveJwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(
+                new ReactiveJwtGrantedAuthoritiesConverterAdapter(grantedAuthoritiesConverter));
+        return converter;
+    }
 
     @Bean
-    SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+    SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http,
+            ReactiveJwtAuthenticationConverter reactiveJwtAuthenticationConverter) {
         http
                 .authorizeExchange(exchanges -> exchanges
                         // requests to the actuators /info, /health, /metrics, and /prometheus are allowed unauthenticated
@@ -71,12 +86,14 @@ public class ContentgridSurveyorPegmanApplication {
                                     return ServerWebExchangeMatcher.MatchResult.notMatch();
                                 })
                         ).permitAll()
-                        // All other GET requests must have scope surveyor:pegman:read
-                        .pathMatchers(HttpMethod.GET).access(hasScope("surveyor:pegman:read"))
+                        // All other GET requests must have entitlement surveyor:pegman:read
+                        .pathMatchers(HttpMethod.GET).access(hasAuthority("ENTITLEMENT_surveyor:pegman:read"))
                         .anyExchange().denyAll()
                 )
                 .oauth2ResourceServer(oauth2ResourceServer -> {
-                    oauth2ResourceServer.jwt(Customizer.withDefaults());
+                    oauth2ResourceServer.jwt(jwtSpec -> {
+                        jwtSpec.jwtAuthenticationConverter(reactiveJwtAuthenticationConverter);
+                    });
                 });
         return http.build();
     }

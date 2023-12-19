@@ -1,5 +1,12 @@
 spring.config.import: optional:classpath:/secrets/sandbox-tokens.yml
 
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8082/realms/contentgrid-dev
+
 server:
   port: 9088
   error:

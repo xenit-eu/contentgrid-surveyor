@@ -8,6 +8,21 @@ surveyor:
         name: sandbox.contentgrid.cloud
         type: pegman
         url: 'http://localhost:9088/'
+        bearer: management-dev
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          management-dev:
+            client-id: surveyor-dev
+            client-secret: 0QGtISJ8vmDMc3Un1WtyV30jbo0dnM8J
+            authorization-grant-type: client_credentials
+        provider:
+          management-dev:
+            issuer-uri: http://localhost:8082/realms/contentgrid-dev
+
 
 server:
   port: 9087
