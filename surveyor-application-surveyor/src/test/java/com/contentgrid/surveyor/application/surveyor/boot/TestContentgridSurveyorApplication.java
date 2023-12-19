@@ -16,12 +16,14 @@ import org.testcontainers.utility.DockerImageName;
 @TestConfiguration(proxyBeanMethods = false)
 class TestContentgridSurveyorApplication {
 
+    private static final DockerImageName TIMESCALE_IMAGE = DockerImageName.parse("timescale/timescaledb:latest-pg14")
+            .asCompatibleSubstituteFor("postgres");
+
     @Bean
     @ServiceConnection
     static PostgreSQLContainer postgresContainer() {
-        return new PostgreSQLContainer<>(DockerImageName.parse("postgres:latest"));
+        return new PostgreSQLContainer<>(TIMESCALE_IMAGE);
     }
-
 
 
     public static void main(String[] args) {
