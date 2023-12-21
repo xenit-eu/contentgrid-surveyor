@@ -94,6 +94,34 @@ surveyor:
         - operation: SUM
     - type: pegman
       resource-type: db
+      metric: stored_bytes
+      query:
+        query: 'db:stored_bytes'
+        interval: PT15M
+      insights:
+        - period: PT1H
+          operation: AVERAGE
+        - operation: AVERAGE
+      billing:
+        - period: PT1H
+          operation: AVERAGE
+        - operation: SUM
+    - type: pegman
+      resource-type: db
+      metric: estimated_count
+      query:
+        query: 'db:stored_bytes'
+        interval: PT1H
+      insights:
+        - period: PT1H
+          operation: MAX
+        - operation: MAX
+      billing:
+        - period: PT1H
+          operation: MAX
+        - operation: MAX
+    - type: pegman
+      resource-type: db
       metric: connections
       query:
         query: 'db:connections'
