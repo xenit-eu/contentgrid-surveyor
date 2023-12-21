@@ -19,6 +19,10 @@ management:
 surveyor:
   systems:
     prometheus:
+      runtime-internal:
+        name: sandbox.contentgrid.cloud
+        type: runtime
+        url: http://localhost:9090
       scw-prometheus-product:
         name: sandbox.contentgrid.cloud
         type: scaleway:prometheus

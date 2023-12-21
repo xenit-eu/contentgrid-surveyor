@@ -56,6 +56,20 @@ surveyor:
         query: 'count_over_time({resource_type="object_storage_bucket"} | json method="http_method" | method != "GET" | method != "HEAD" [1h])'
         interval: PT1H
         resource-id-label: resource_id
+    - type: runtime
+      resource-type: db
+      metric: stored_bytes
+      query:
+        query: 'sum by(resource_id) (avg_over_time(contentgrid_entity_database_disk_size_bytes[15m]))'
+        interval: PT15M
+        resource-id-label: resource_id
+    - type: runtime
+      resource-type: db
+      metric: estimated_count
+      query:
+        query: 'sum by(resource_id) (max_over_time(contentgrid_entity_database_estimated_count[1h]))'
+        interval: PT1H
+        resource-id-label: resource_id
     - type: scaleway:prometheus
       resource-type: db
       metric: connections
