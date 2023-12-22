@@ -73,9 +73,15 @@ public class TimeInterval {
     public Stream<TimeInterval> chunkedBy(Duration chunkDuration) {
         return Stream.iterate(
                 TimeInterval.after(startTime, chunkDuration),
-                time -> this.contains(time).isContained(),
+                time -> time.getStartTime().isBefore(this.getEndTime()),
                 TimeInterval::nextInterval
-        );
+        ).map(interval -> {
+            if (interval.getEndTime().isAfter(this.getEndTime())) {
+                return TimeInterval.between(interval.getStartTime(), this.getEndTime());
+            } else {
+                return interval;
+            }
+        });
     }
 
     public String toString() {
