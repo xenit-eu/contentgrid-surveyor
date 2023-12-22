@@ -25,8 +25,8 @@ surveyor:
       resource-type: storage
       metric: objects_count
       query:
-        query: 'sum by(resource_id) (max_over_time(object_storage_bucket_objects_total[1h]))'
-        interval: PT1H
+        query: 'sum by(resource_id) (max_over_time(object_storage_bucket_objects_total[15m]))'
+        interval: PT15M
         resource-id-label: resource_id
     - type: scaleway:prometheus
       resource-type: storage

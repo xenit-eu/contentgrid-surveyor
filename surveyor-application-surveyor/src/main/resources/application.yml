@@ -27,7 +27,7 @@ surveyor:
       metric: objects_count
       query:
         query: 'storage:objects_count'
-        interval: PT1H
+        interval: PT15M
       insights:
         - period: PT1H
           operation: MAX
@@ -110,7 +110,7 @@ surveyor:
       resource-type: db
       metric: estimated_count
       query:
-        query: 'db:stored_bytes'
+        query: 'db:estimated_count'
         interval: PT1H
       insights:
         - period: PT1H
