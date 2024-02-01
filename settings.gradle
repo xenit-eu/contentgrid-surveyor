@@ -33,6 +33,7 @@ include 'surveyor-application-surveyor'
 include 'surveyor-application-pegman'
 
 include 'surveyor-application-exporter-postgres'
+include 'surveyor-application-auditor'
 
 include 'surveyor-dependencies'
 
@@ -58,3 +59,5 @@ include 'surveyor-usecases'
 
 include 'jackson-streaming-parser'
 include 'surveyor-testcontainers'
+include 'surveyor-application-auditor'
+
