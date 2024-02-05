@@ -1,3 +1,6 @@
+logging.level:
+  com.contentgrid.surveyor: DEBUG
+
 surveyor.auditor:
   rabbitmq:
     enabled: true

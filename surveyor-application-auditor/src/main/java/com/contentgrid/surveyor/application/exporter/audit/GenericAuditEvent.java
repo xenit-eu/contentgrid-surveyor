@@ -1,5 +1,6 @@
 package com.contentgrid.surveyor.application.exporter.audit;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -22,6 +23,18 @@ public class GenericAuditEvent {
 
     @JsonProperty("response.status")
     public int responseStatus;
+
+    @JsonIgnore
+    public String getResponseCategory() {
+        if (responseStatus >= 200 && responseStatus <= 299) {
+            return "2xx";
+        } else if (responseStatus >= 400 && responseStatus <= 499) {
+            return "4xx";
+        } else if (responseStatus >= 500 && responseStatus <= 599) {
+            return "5xx";
+        }
+        return null;
+    }
 
     @JsonProperty("response.location")
     @JsonInclude(Include.NON_NULL)
