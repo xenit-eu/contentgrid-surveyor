@@ -26,12 +26,16 @@ public class GenericAuditEvent {
 
     @JsonIgnore
     public String getResponseCategory() {
-        if (responseStatus >= 200 && responseStatus <= 299) {
-            return "2xx";
-        } else if (responseStatus >= 400 && responseStatus <= 499) {
-            return "4xx";
-        } else if (responseStatus >= 500 && responseStatus <= 599) {
+        if (responseStatus >= 500) {
             return "5xx";
+        } else if (responseStatus >= 400) {
+            return "4xx";
+        } else if (responseStatus >= 300) {
+            return "3xx";
+        } else if (responseStatus >= 200) {
+            return "2xx";
+        } else if (responseStatus >= 100) {
+            return "1xx";
         }
         return null;
     }
