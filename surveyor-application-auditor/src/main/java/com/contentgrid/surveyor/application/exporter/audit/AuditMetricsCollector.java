@@ -4,31 +4,39 @@ package com.contentgrid.surveyor.application.exporter.audit;
 import io.prometheus.metrics.core.metrics.Counter;
 import io.prometheus.metrics.model.registry.Collector;
 import io.prometheus.metrics.model.snapshots.MetricSnapshot;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
+import org.springframework.scheduling.annotation.Scheduled;
 
 @Slf4j
 @RequiredArgsConstructor
 public class AuditMetricsCollector implements MessageReceiver, Collector {
 
-    private final Counter counter = Counter.builder()
-            .name("contentgrid.requests")
-            // Make sure these labels keep matching the values in the receive method
-            .labelNames(
-                    "application_id",
-                    "deployment_id",
-                    "response_cat",
-                    "entity_name",
-                    "operation"
-            )
-            .build();
+    private final AtomicReference<Counter> counter = new AtomicReference<>(makeCounter());
+    private final AtomicBoolean shouldReset = new AtomicBoolean(false);
+
+    private static Counter makeCounter() {
+        return Counter.builder()
+                .name("contentgrid.requests")
+                // Make sure these labels keep matching the values in the receive method
+                .labelNames(
+                        "application_id",
+                        "deployment_id",
+                        "response_cat",
+                        "entity_name",
+                        "operation"
+                )
+                .build();
+    }
 
     @Override
     public void receive(Message<GenericAuditEvent> message) {
         // Make sure these values keep matching the labels in the Counter's definition,
         // otherwise it will compile but blow up at runtime
-        counter.labelValues(
+        counter.get().labelValues(
                 antiNull(message.getHeaders().get("applicationId", String.class), "application_id"),
                 antiNull(message.getHeaders().get("deploymentId", String.class), "deployment_id"),
                 antiNull(message.getPayload().getResponseCategory(), "response_cat"),
@@ -37,9 +45,21 @@ public class AuditMetricsCollector implements MessageReceiver, Collector {
         ).inc();
     }
 
+    // Reset counters midnight gmt to avoid publishing a big list of old, unused labels
+    @Scheduled(cron = "0 0 0 * * ?", zone = "GMT")
+    public void scheduleReset() {
+        log.info("Scheduling reset of the counter");
+        shouldReset.set(true);
+    }
+
     @Override
     public MetricSnapshot collect() {
-        return counter.collect();
+        var snapshot = counter.get().collect();
+        if (shouldReset.compareAndExchange(true, false)) {
+            log.info("Resetting counter");
+            counter.set(makeCounter());
+        }
+        return snapshot;
     }
 
     private static String antiNull(String value, String desc) {
