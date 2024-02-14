@@ -19,7 +19,7 @@ public class AuditController {
 
     @GetMapping("/metrics")
     public void getMetrics(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        log.debug("/metrics");
+        log.debug("/metrics was scraped");
         HttpExchangeAdapter adapter = new HttpExchangeAdapter(request, response);
         prometheusScrapeHandler.handleRequest(adapter);
 
