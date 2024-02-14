@@ -1,24 +1,9 @@
 logging.level:
   com.contentgrid.surveyor: DEBUG
 
-surveyor.auditor:
+surveyor.exporter:
   rabbitmq:
     enabled: true
-  metrics:
-    - metric-name: contentgrid_entity_database
-      key-labels:
-        - resource_id
-        - entity_name
-      values:
-        - disk_size_bytes
-        - estimated_count
-
-spring:
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: https://auth.contentgrid.com/realms/contentgrid
 
 management:
   server:

@@ -59,5 +59,4 @@ include 'surveyor-usecases'
 
 include 'jackson-streaming-parser'
 include 'surveyor-testcontainers'
-include 'surveyor-application-auditor'
 

@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 
 @Configuration
-@ConditionalOnProperty(value = "surveyor.auditor.rabbitmq.enabled")
+@ConditionalOnProperty(value = "surveyor.exporter.rabbitmq.enabled")
 public class RabbitmqConfiguration {
 
     @Bean

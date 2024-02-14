@@ -6,36 +6,23 @@ plugins {
 }
 
 dependencies {
-
     implementation platform(project(':surveyor-dependencies'))
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-amqp'
-    implementation 'org.springframework:spring-messaging'
     implementation 'io.prometheus:prometheus-metrics-core:1.1.0'
     implementation 'io.prometheus:prometheus-metrics-exporter-common:1.1.0'
     implementation 'io.prometheus:prometheus-metrics-exporter-servlet-jakarta:1.1.0'
     implementation 'jakarta.servlet:jakarta.servlet-api'
-    implementation 'io.micrometer:micrometer-registry-prometheus'
 
     implementation 'com.contentgrid.spring:contentgrid-spring-boot-autoconfigure:0.11.1'
 
-    implementation project(':surveyor-drivers-web')
-//    implementation project(':surveyor-usecases')
-//    implementation project(':surveyor-infrastructure-storage-pullthrough')
-    implementation project(':surveyor-infrastructure-collector-prometheus')
-    implementation project(':surveyor-infrastructure-config-spring')
-
-    developmentOnly 'org.testcontainers:postgresql'
-
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.security:spring-security-test'
 }
 
 bootBuildImage {
-    imageName = "ghcr.io/xenit-eu/contentgrid-surveyor-auditor:${project.version}"
-    tags = "${project.version}".endsWith('SNAPSHOT') ? ['ghcr.io/xenit-eu/contentgrid-surveyor-auditor:SNAPSHOT'] : null
+    imageName = "ghcr.io/xenit-eu/contentgrid-surveyor-exporter-cgapp:${project.version}"
+    tags = "${project.version}".endsWith('SNAPSHOT') ? ['ghcr.io/xenit-eu/contentgrid-surveyor-exporter-cgapp:SNAPSHOT'] : null
 
     docker {
         publishRegistry {

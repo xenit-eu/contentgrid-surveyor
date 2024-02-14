@@ -4,13 +4,14 @@ global:
   evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
   # scrape_timeout is set to the global default (10s).
 
-# A scrape configuration containing exactly one endpoint to scrape:
+# A scrape configuration for scraping application-exporter-cgapp and application-exporter-postgres:
 scrape_configs:
   # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
-  - job_name: "auditor"
-
+  - job_name: "cgapp"
     # metrics_path defaults to '/metrics'
     # scheme defaults to 'http'.
-
     static_configs:
       - targets: ["172.17.0.1:9070"]
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["172.17.0.1:9089"]
