@@ -33,7 +33,7 @@ include 'surveyor-application-surveyor'
 include 'surveyor-application-pegman'
 
 include 'surveyor-application-exporter-postgres'
-include 'surveyor-application-exporter-cgapp'
+include 'surveyor-application-exporter-cgapp-api'
 
 include 'surveyor-dependencies'
 

@@ -21,8 +21,9 @@ dependencies {
 }
 
 bootBuildImage {
-    imageName = "ghcr.io/xenit-eu/contentgrid-surveyor-exporter-cgapp:${project.version}"
-    tags = "${project.version}".endsWith('SNAPSHOT') ? ['ghcr.io/xenit-eu/contentgrid-surveyor-exporter-cgapp:SNAPSHOT'] : null
+    def imageRepo = "ghcr.io/xenit-eu/contentgrid-surveyor-exporter-cgapp-api"
+    imageName = "${imageRepo}:${project.version}"
+    tags = "${project.version}".endsWith('SNAPSHOT') ? ["${imageRepo}:SNAPSHOT"] : null
 
     docker {
         publishRegistry {

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-public class CgappMetricsController {
+public class CgappApiMetricsController {
 
     private final PrometheusScrapeHandler prometheusScrapeHandler;
 

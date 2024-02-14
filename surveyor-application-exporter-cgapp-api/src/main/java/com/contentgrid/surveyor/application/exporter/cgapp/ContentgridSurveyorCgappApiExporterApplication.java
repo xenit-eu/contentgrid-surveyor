@@ -12,10 +12,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @SpringBootApplication
 @Import({RabbitmqConfiguration.class})
-public class ContentgridSurveyorExporterCgappApplication {
+public class ContentgridSurveyorCgappApiExporterApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(ContentgridSurveyorExporterCgappApplication.class, args);
+        SpringApplication.run(ContentgridSurveyorCgappApiExporterApplication.class, args);
     }
 
     @Bean
