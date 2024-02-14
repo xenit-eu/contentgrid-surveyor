@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.application.exporter.audit;
+package com.contentgrid.surveyor.application.exporter.cgapp;
 
 import java.util.function.Consumer;
 import lombok.val;
@@ -32,8 +32,8 @@ public class RabbitmqConfiguration {
     }
 
     @Bean
-    AuditMetricsCollector messageReceiver() {
-        return new AuditMetricsCollector();
+    MetricsCollector messageReceiver() {
+        return new MetricsCollector();
     }
 
 }

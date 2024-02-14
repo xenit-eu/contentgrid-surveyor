@@ -1,10 +1,9 @@
-package com.contentgrid.surveyor.application.exporter.audit;
+package com.contentgrid.surveyor.application.exporter.cgapp;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;

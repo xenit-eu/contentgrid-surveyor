@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.application.exporter.audit;
+package com.contentgrid.surveyor.application.exporter.cgapp;
 
 import org.springframework.messaging.Message;
 

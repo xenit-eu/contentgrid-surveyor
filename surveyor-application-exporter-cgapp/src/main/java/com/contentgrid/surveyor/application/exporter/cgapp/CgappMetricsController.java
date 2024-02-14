@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.application.exporter.audit;
+package com.contentgrid.surveyor.application.exporter.cgapp;
 
 import io.prometheus.metrics.exporter.common.PrometheusScrapeHandler;
 import io.prometheus.metrics.exporter.servlet.jakarta.HttpExchangeAdapter;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-public class AuditController {
+public class CgappMetricsController {
 
     private final PrometheusScrapeHandler prometheusScrapeHandler;
 

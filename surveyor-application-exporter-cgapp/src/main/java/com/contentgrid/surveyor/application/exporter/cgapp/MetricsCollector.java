@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.application.exporter.audit;
+package com.contentgrid.surveyor.application.exporter.cgapp;
 
 
 import io.prometheus.metrics.core.metrics.Counter;
@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 @Slf4j
 @RequiredArgsConstructor
-public class AuditMetricsCollector implements MessageReceiver, Collector {
+public class MetricsCollector implements MessageReceiver, Collector {
 
     private final AtomicReference<Counter> counter = new AtomicReference<>(makeCounter());
     private final AtomicBoolean shouldReset = new AtomicBoolean(false);
