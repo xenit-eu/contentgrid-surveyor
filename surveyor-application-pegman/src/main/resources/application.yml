@@ -81,7 +81,7 @@ surveyor:
       resource-type: api
       metric: request_count
       query:
-        query: 'sum by(application_id) (increase(contentgrid_requests_total[15m]))'
+        query: 'sum by(application_id) (increase(contentgrid_api_requests_total[15m]))'
         interval: PT15M
         resource-id-label: application_id
 

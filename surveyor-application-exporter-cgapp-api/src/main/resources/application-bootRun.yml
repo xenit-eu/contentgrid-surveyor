@@ -1,16 +1,5 @@
-spring:
-  rabbitmq:
-    host: localhost
-    port: 5672
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://${DOCKER_HOST_IP:172.17.0.1}:8082/realms/contentgrid-dev
-
-surveyor.auditor:
-  rabbitmq:
-    queue: myqueue
-
 server:
   port: 9070
+management:
+  server:
+    port: 9170

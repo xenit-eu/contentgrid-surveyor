@@ -19,6 +19,12 @@ public class ContentgridSurveyorCgappApiExporterApplication {
     }
 
     @Bean
+    MetricsCollector metricsCollector() {
+        return new MetricsCollector();
+    }
+
+
+    @Bean
     @ConditionalOnBean(MetricsCollector.class)
     PrometheusRegistry myMeterRegistry(MetricsCollector metricsCollector) {
         var registry = new PrometheusRegistry();

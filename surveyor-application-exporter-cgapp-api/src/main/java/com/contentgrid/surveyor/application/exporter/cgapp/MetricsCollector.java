@@ -20,7 +20,7 @@ public class MetricsCollector implements MessageReceiver, Collector {
 
     private static Counter makeCounter() {
         return Counter.builder()
-                .name("contentgrid.requests")
+                .name("contentgrid.api.requests")
                 // Make sure these labels keep matching the values in the receive method
                 .labelNames(
                         "application_id",
@@ -39,14 +39,14 @@ public class MetricsCollector implements MessageReceiver, Collector {
         counter.get().labelValues(
                 antiNull(message.getHeaders().get("applicationId", String.class), "application_id"),
                 antiNull(message.getHeaders().get("deploymentId", String.class), "deployment_id"),
-                antiNull(message.getPayload().getResponseCategory(), "response_cat"),
+                antiNull(message.getPayload().getResponseCategory(), "response_status_series"),
                 antiNull(message.getPayload().getDomainType(), "entity_name"),
                 antiNull(message.getPayload().getOperation(), "operation")
         ).inc();
     }
 
-    // Reset counters midnight gmt to avoid publishing a big list of old, unused labels
-    @Scheduled(cron = "0 0 0 * * ?", zone = "GMT")
+    // Reset counters midnight utc to avoid publishing a big list of old, unused labels
+    @Scheduled(cron = "0 0 0 * * ?", zone = "UTC")
     public void scheduleReset() {
         log.info("Scheduling reset of the counter");
         shouldReset.set(true);

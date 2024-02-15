@@ -24,16 +24,11 @@ public class RabbitmqConfiguration {
     @Bean
     Consumer<?> rabbitListener(MessageReceiver receiver) {
         return new Consumer<Message<GenericAuditEvent>>() {
-            @RabbitListener(queues = "${surveyor.auditor.rabbitmq.queue:surveyor-auditor}")
+            @RabbitListener(queues = "${surveyor.exporter.rabbitmq.queue:surveyor-cgapp-api-exporter}")
             public void accept(Message<GenericAuditEvent> msg) {
                 receiver.receive(msg);
             }
         };
-    }
-
-    @Bean
-    MetricsCollector messageReceiver() {
-        return new MetricsCollector();
     }
 
 }

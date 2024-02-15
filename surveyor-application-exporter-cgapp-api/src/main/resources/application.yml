@@ -1,5 +1,5 @@
 logging.level:
-  com.contentgrid.surveyor: DEBUG
+  com.contentgrid.surveyor: INFO
 
 surveyor.exporter:
   rabbitmq:
@@ -12,6 +12,3 @@ management:
     web:
       exposure:
         include: '*'
-  tracing:
-    sampling:
-      probability: 1.0

@@ -10,9 +10,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-amqp'
-    implementation 'io.prometheus:prometheus-metrics-core:1.1.0'
-    implementation 'io.prometheus:prometheus-metrics-exporter-common:1.1.0'
-    implementation 'io.prometheus:prometheus-metrics-exporter-servlet-jakarta:1.1.0'
+    implementation 'io.prometheus:prometheus-metrics-core'
+    implementation 'io.prometheus:prometheus-metrics-exporter-common'
+    implementation 'io.prometheus:prometheus-metrics-exporter-servlet-jakarta'
     implementation 'jakarta.servlet:jakarta.servlet-api'
 
     implementation 'com.contentgrid.spring:contentgrid-spring-boot-autoconfigure:0.11.1'
