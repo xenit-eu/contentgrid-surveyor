@@ -6,6 +6,10 @@ pluginManagement {
     }
 }
 
+plugins {
+    id 'eu.xenit.enterprise-conventions.private' version '0.5.1'
+}
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
