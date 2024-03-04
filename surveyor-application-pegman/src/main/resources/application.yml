@@ -77,4 +77,11 @@ surveyor:
         query: 'sum by(datname) (max_over_time(rdb_instance_postgresql_pg_stat_database_numbackends{datname!="",datname!="postgres"}[1h]))'
         interval: PT1H
         resource-id-label: datname
+    - type: runtime
+      resource-type: api
+      metric: request_count
+      query:
+        query: 'sum by(application_id) (increase(contentgrid_api_requests_total[15m]))'
+        interval: PT15M
+        resource-id-label: application_id
 

@@ -1,0 +1,14 @@
+logging.level:
+  com.contentgrid.surveyor: INFO
+
+surveyor.exporter:
+  rabbitmq:
+    enabled: true
+
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: '*'
