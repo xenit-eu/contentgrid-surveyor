@@ -133,3 +133,17 @@ surveyor:
         - period: PT1H
           operation: MAX
         - operation: MAX
+    - type: pegman
+      resource-type: api
+      metric: request_count
+      query:
+        query: 'api:request_count'
+        interval: PT15M
+      insights:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
+      billing:
+        - period: PT1H
+          operation: SUM
+        - operation: SUM
