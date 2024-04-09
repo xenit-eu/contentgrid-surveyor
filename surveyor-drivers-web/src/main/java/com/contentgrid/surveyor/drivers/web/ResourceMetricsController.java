@@ -1,10 +1,12 @@
 package com.contentgrid.surveyor.drivers.web;
 
+import com.contentgrid.surveyor.api.metrics.AggregateBillingMetrics;
+import com.contentgrid.surveyor.api.metrics.AggregateBillingMetrics.AggregateBillingMetricsCommand;
+import com.contentgrid.surveyor.api.metrics.ExportedMetrics;
 import com.contentgrid.surveyor.api.metrics.FindBillingMetrics;
 import com.contentgrid.surveyor.api.metrics.FindBillingMetrics.BillingMetricsCommand;
 import com.contentgrid.surveyor.api.metrics.FindExportedMetrics;
 import com.contentgrid.surveyor.api.metrics.FindExportedMetrics.ExportMetricsCommand;
-import com.contentgrid.surveyor.api.metrics.ExportedMetrics;
 import com.contentgrid.surveyor.api.metrics.FindInsightMetrics;
 import com.contentgrid.surveyor.api.metrics.FindInsightMetrics.FindInsightMetricsCommand;
 import com.contentgrid.surveyor.api.metrics.Metric;
@@ -20,9 +22,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.reactivestreams.Subscription;
@@ -46,6 +51,7 @@ public class ResourceMetricsController {
     private final FindExportedMetrics findExportedMetrics;
     private final FindInsightMetrics findInsightMetrics;
     private final FindBillingMetrics findBillingMetrics;
+    private final AggregateBillingMetrics aggregateBillingMetrics;
     private final ObjectMapper objectMapper;
 
     @GetMapping("/metrics/{resourceType}:{metric}")
@@ -158,6 +164,36 @@ public class ResourceMetricsController {
                 .collectList()
                 .map(CollectionModel::of);
     }
+
+    @GetMapping("/metrics/billing")
+    public Mono<CollectionModel<?>> billingMonthMetrics(
+            @RequestParam int year,
+            @RequestParam int month,
+            @RequestParam(required = false) String format
+    ) {
+        var from = OffsetDateTime.of(year, month, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+        var to = from.plusMonths(1);
+
+        var flux = aggregateBillingMetrics.findMetricsForBilling(new AggregateBillingMetricsCommand(
+                from.toInstant(), to.toInstant()));
+
+        if ("csv".equals(format)) {
+            // TODO ...
+            return null;
+        } else {
+            return flux
+                    .map(x -> new BillingRecord(x.linkage().getApplicationRef(),
+                            Optional.ofNullable(x.measurements().get(MetricName.of("request_count"))).map(y -> y.getValue().doubleValue()).orElse(0d),
+                            Optional.ofNullable(x.measurements().get(MetricName.of("objects_count"))).map(y -> y.getValue().doubleValue()).orElse(0d),
+                            Optional.ofNullable(x.measurements().get(MetricName.of("stored_bytes"))).map(y -> y.getValue().doubleValue()).orElse(0d),
+                            Optional.ofNullable(x.measurements().get(MetricName.of("estimated_count"))).map(y -> y.getValue().doubleValue()).orElse(0d)
+                    ))
+                    .collectList()
+                    .map(CollectionModel::of);
+        }
+    }
+
+    private record BillingRecord(String app, double requests, double objects, double bytes, double records){}
 
     @RequiredArgsConstructor
     private static class ExportedMetricsWritingSubscriber extends BaseSubscriber<ExportedMetrics> {

@@ -147,3 +147,11 @@ surveyor:
         - period: PT1H
           operation: SUM
         - operation: SUM
+
+  invoicing:
+    - name: default
+      metrics:
+        - 'api:request_count'
+        - 'storage:objects_count'
+        - 'storage:stored_bytes'
+        - 'db:estimated_count'
