@@ -1,7 +1,5 @@
 package com.contentgrid.surveyor.drivers.web;
 
-import com.contentgrid.surveyor.api.metrics.AggregateBillingMetrics;
-import com.contentgrid.surveyor.api.metrics.AggregateBillingMetrics.AggregateBillingMetricsCommand;
 import com.contentgrid.surveyor.api.metrics.ExportedMetrics;
 import com.contentgrid.surveyor.api.metrics.FindBillingMetrics;
 import com.contentgrid.surveyor.api.metrics.FindBillingMetrics.BillingMetricsCommand;
@@ -13,7 +11,6 @@ import com.contentgrid.surveyor.api.metrics.Metric;
 import com.contentgrid.surveyor.api.metrics.Resource;
 import com.contentgrid.surveyor.drivers.web.MetricRepresentationModel.MetricData;
 import com.contentgrid.surveyor.jackson.streaming.generator.DataBufferOutputStream;
-import com.contentgrid.surveyor.spi.resources.LinkedMeasurements;
 import com.contentgrid.surveyor.values.MetricName;
 import com.contentgrid.surveyor.values.ResourceId;
 import com.contentgrid.surveyor.values.ResourceType;
@@ -23,9 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,9 +29,7 @@ import org.reactivestreams.Subscription;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.springframework.util.comparator.Comparators;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -54,7 +46,6 @@ public class ResourceMetricsController {
     private final FindExportedMetrics findExportedMetrics;
     private final FindInsightMetrics findInsightMetrics;
     private final FindBillingMetrics findBillingMetrics;
-    private final AggregateBillingMetrics aggregateBillingMetrics;
     private final ObjectMapper objectMapper;
 
     @GetMapping("/metrics/{resourceType}:{metric}")
@@ -168,43 +159,7 @@ public class ResourceMetricsController {
                 .map(CollectionModel::of);
     }
 
-    @GetMapping("/metrics/billing")
-    public Mono<CollectionModel<BillingRecordRepresentationModel>> billingMonthMetricsJson(
-            @RequestParam int year,
-            @RequestParam int month
-    ) {
-        var from = OffsetDateTime.of(year, month, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-        var to = from.plusMonths(1);
-
-        var flux = aggregateBillingMetrics.findMetricsForBilling(new AggregateBillingMetricsCommand(
-                from.toInstant(), to.toInstant()));
-
-        return flux
-                .map(BillingRecordRepresentationModel::from)
-                .collectList()
-                .map(CollectionModel::of);
-    }
-
-    @GetMapping(value = "/metrics/billing.csv", produces = {"text/csv"})
-    public ResponseEntity<Flux<BillingCsvRecordModel>> billingMonthMetricsCsv(
-            @RequestParam int year,
-            @RequestParam int month
-    ) {
-        var from = OffsetDateTime.of(year, month, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-        var to = from.plusMonths(1);
-
-        var flux = aggregateBillingMetrics.findMetricsForBilling(new AggregateBillingMetricsCommand(
-                from.toInstant(), to.toInstant()));
-
-        return ResponseEntity.ok(flux.collectList().flatMapMany(l -> {
-            l.sort(new LMComparator());
-            return Flux.fromIterable(l);
-        }).map(BillingCsvRecordModel::from));
-
-    }
-
-
-        @RequiredArgsConstructor
+    @RequiredArgsConstructor
     private static class ExportedMetricsWritingSubscriber extends BaseSubscriber<ExportedMetrics> {
 
         private final JsonGenerator generator;
@@ -260,23 +215,4 @@ public class ResourceMetricsController {
         }
     }
 
-    private static class LMComparator implements Comparator<LinkedMeasurements> {
-        @Override
-        public int compare(LinkedMeasurements a, LinkedMeasurements b) {
-            // compare org
-            var orgCompare = a.linkage().getOrgRef().compareTo(b.linkage().getOrgRef());
-            if (orgCompare != 0) {
-                return orgCompare;
-            }
-
-            // otherwise compare project
-            var projectCompare = a.linkage().getProjectRef().compareTo(b.linkage().getProjectRef());
-            if (projectCompare != 0) {
-                return projectCompare;
-            }
-
-            // otherwise compare app
-            return a.linkage().getApplicationRef().compareTo(b.linkage().getApplicationRef());
-        }
-    }
 }

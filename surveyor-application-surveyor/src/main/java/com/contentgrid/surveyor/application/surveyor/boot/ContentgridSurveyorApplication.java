@@ -4,6 +4,7 @@ import com.contentgrid.surveyor.api.metrics.AggregateBillingMetrics;
 import com.contentgrid.surveyor.api.pull.PullMetrics;
 import com.contentgrid.surveyor.api.resources.LinkResources;
 import com.contentgrid.surveyor.application.surveyor.autoconfigure.OptionalR2dbcAutoConfiguration;
+import com.contentgrid.surveyor.drivers.billing.SurveyorBillingConfiguration;
 import com.contentgrid.surveyor.drivers.schedule.SurveyorSchedulerConfiguration;
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
 import com.contentgrid.surveyor.infrastructure.collector.pegman.SurveyorMeasurementCollectorPegmanConfiguration;
@@ -40,6 +41,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 @SpringBootApplication
 @Import({
         SurveyorWebConfiguration.class,
+        SurveyorBillingConfiguration.class,
         SurveyorSchedulerConfiguration.class,
         SurveyorSpringConfiguration.class,
         SurveyorMeasurementCollectorPegmanConfiguration.class,

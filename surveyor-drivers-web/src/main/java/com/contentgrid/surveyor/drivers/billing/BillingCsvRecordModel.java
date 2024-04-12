@@ -1,13 +1,9 @@
-package com.contentgrid.surveyor.drivers.web;
+package com.contentgrid.surveyor.drivers.billing;
 
 import com.contentgrid.surveyor.spi.resources.LinkedMeasurements;
 import com.contentgrid.surveyor.values.MetricName;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.math.BigDecimal;
-import lombok.EqualsAndHashCode;
-import lombok.Value;
-import org.springframework.hateoas.RepresentationModel;
-import org.springframework.hateoas.server.core.Relation;
 
 @JsonPropertyOrder({"org", "project", "app", "requests", "objects", "bytes", "records"})
 record BillingCsvRecordModel (

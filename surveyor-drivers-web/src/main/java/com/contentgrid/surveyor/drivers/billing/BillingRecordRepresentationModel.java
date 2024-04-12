@@ -1,4 +1,4 @@
-package com.contentgrid.surveyor.drivers.web;
+package com.contentgrid.surveyor.drivers.billing;
 
 import com.contentgrid.surveyor.spi.resources.LinkedMeasurements;
 import com.contentgrid.surveyor.values.MetricName;
