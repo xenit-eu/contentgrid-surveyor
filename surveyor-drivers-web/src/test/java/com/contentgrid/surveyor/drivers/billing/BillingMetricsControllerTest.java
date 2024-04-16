@@ -52,13 +52,11 @@ class BillingMetricsControllerTest {
         webTestClient.get().uri("/metrics/billing.csv?year=2024&month=1").exchange()
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.parseMediaType("text/csv"))
-                .expectBody().consumeWith((entityExchangeResult -> {
-                    assertArrayEquals("""
-                            /orgs/123,/projects/123,/applications/123,1000000000,50000,52428800000,100000
-                            /orgs/456,/projects/456,/applications/456,50000,200,26214400,400
-                            """.getBytes(StandardCharsets.UTF_8),
-                            entityExchangeResult.getResponseBody());
-                }));
+                .expectBody(String.class)
+                .isEqualTo("""
+                        /orgs/123,/projects/123,/applications/123,1000000000,50000,52428800000,100000
+                        /orgs/456,/projects/456,/applications/456,50000,200,26214400,400
+                        """);
     }
 
     // @formatter:off
