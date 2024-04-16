@@ -1,8 +1,10 @@
 package com.contentgrid.surveyor.application.surveyor.boot;
 
+import com.contentgrid.surveyor.api.metrics.AggregateBillingMetrics;
 import com.contentgrid.surveyor.api.pull.PullMetrics;
 import com.contentgrid.surveyor.api.resources.LinkResources;
 import com.contentgrid.surveyor.application.surveyor.autoconfigure.OptionalR2dbcAutoConfiguration;
+import com.contentgrid.surveyor.drivers.billing.SurveyorBillingConfiguration;
 import com.contentgrid.surveyor.drivers.schedule.SurveyorSchedulerConfiguration;
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
 import com.contentgrid.surveyor.infrastructure.collector.pegman.SurveyorMeasurementCollectorPegmanConfiguration;
@@ -18,6 +20,7 @@ import com.contentgrid.surveyor.spi.resources.LookupResourceLinkSpiPort;
 import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
 import com.contentgrid.surveyor.spi.storage.LastMeasurementSpiPort;
 import com.contentgrid.surveyor.spi.storage.StoreMeasurementSpiPort;
+import com.contentgrid.surveyor.usecase.metrics.AggregateMetricsUseCase;
 import com.contentgrid.surveyor.usecase.metrics.FindMetricsUseCase;
 import com.contentgrid.surveyor.usecase.pull.PullMetricsUseCase;
 import com.contentgrid.surveyor.usecase.resources.LinkResourcesUseCase;
@@ -38,6 +41,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 @SpringBootApplication
 @Import({
         SurveyorWebConfiguration.class,
+        SurveyorBillingConfiguration.class,
         SurveyorSchedulerConfiguration.class,
         SurveyorSpringConfiguration.class,
         SurveyorMeasurementCollectorPegmanConfiguration.class,
@@ -81,6 +85,17 @@ public class ContentgridSurveyorApplication {
             AggregateMeasurementsSpiPort aggregateMeasurementsSpiPort) {
         return new FindMetricsUseCase(resourceAggregationConfigurationSpiPort, aggregateMeasurementsSpiPort,
                 findResourceDefinitionsSpiPort);
+    }
+
+    @Bean
+    AggregateMetricsUseCase aggregateMetrics(
+            FindMeasurementAggregationConfigurationSpiPort findMeasurementAggregationConfiguration,
+            AggregateMeasurementsSpiPort aggregateMeasurementsSpiPort,
+            FindResourceDefinitionsSpiPort findResourceDefinitionsSpiPort,
+            LookupResourceLinkSpiPort lookupResourceLinkSpiPort
+    ) {
+        return new AggregateMetricsUseCase(findMeasurementAggregationConfiguration, aggregateMeasurementsSpiPort,
+                findResourceDefinitionsSpiPort, lookupResourceLinkSpiPort);
     }
 
     @Bean

@@ -8,9 +8,11 @@ import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
 import com.contentgrid.surveyor.spi.collector.MeasurementCollector;
 import com.contentgrid.surveyor.spi.config.MetricCollectionConfig;
 import com.contentgrid.surveyor.spi.MetricCollectorSystemType;
+import com.contentgrid.surveyor.values.ResourceAndMetric;
 import com.contentgrid.surveyor.values.ResourceType;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -50,6 +52,21 @@ public class SurveyorSpringConfiguration {
                                     measurementCollector.getSystemType()).stream()
                             .filter(config -> Objects.equals(config.resourceType(), resourceType))
                             .flatMap(config -> measurementCollector.resourceDefinition(config).stream())
+                    )
+                    .toList();
+        }
+
+        @Override
+        public List<ResourceDefinition> findResourceDefinitions(List<ResourceAndMetric> resourceAndMetricPairs) {
+            Predicate<MetricCollectionConfig> contains = config -> resourceAndMetricPairs.contains(
+                    new ResourceAndMetric(config.resourceType(), config.metric()));
+
+            return measurementCollectors.stream()
+                    .flatMap(collector ->
+                            findCollectionConfigurationsSpiPort.findConfigurationsFor(collector.getSystemType())
+                                    .stream()
+                                    .filter(contains)
+                                    .flatMap(config -> collector.resourceDefinition(config).stream())
                     )
                     .toList();
         }

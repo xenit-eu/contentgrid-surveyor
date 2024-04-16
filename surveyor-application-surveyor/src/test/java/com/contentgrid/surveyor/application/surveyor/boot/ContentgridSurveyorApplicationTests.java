@@ -1,8 +1,13 @@
 package com.contentgrid.surveyor.application.surveyor.boot;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import com.contentgrid.surveyor.drivers.billing.BillingMetricsController;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.InMemoryReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
@@ -18,8 +23,16 @@ class ContentgridSurveyorApplicationTests {
 	@MockBean
 	ReactiveOAuth2AuthorizedClientService reactiveOAuth2AuthorizedClientService;
 
+	@Autowired
+	ApplicationContext applicationContext;
+
 	@Test
 	void contextLoads() {
+	}
+
+	@Test
+	void testBillingEndpointLoaded() {
+		assertNotNull(applicationContext.getBean(BillingMetricsController.class));
 	}
 
 }
