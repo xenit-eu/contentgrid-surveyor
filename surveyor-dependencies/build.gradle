@@ -15,6 +15,6 @@ dependencies {
         api 'com.contentgrid.hateoas:contentgrid-hateoas-spring:0.0.1-SNAPSHOT'
         api 'io.prometheus:prometheus-metrics-core:1.2.1'
         api 'io.prometheus:prometheus-metrics-exporter-common:1.2.1'
-        api 'io.prometheus:prometheus-metrics-exporter-servlet-jakarta:1.1.0'
+        api 'io.prometheus:prometheus-metrics-exporter-servlet-jakarta:1.2.1'
     }
 }
