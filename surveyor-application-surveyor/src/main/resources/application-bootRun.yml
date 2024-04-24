@@ -1,7 +1,8 @@
 surveyor:
   resource-linkage:
     captain:
-      url: 'http://localhost:9086/internal/runtime-platforms/{sourceSystem}/types/{resourceType}/resources/{resourceId}'
+      url: 'http://172.17.0.1:9086/internal/runtime-platforms/{sourceSystem}/types/{resourceType}/resources/{resourceId}'
+      bearer: resource-lookup
   systems:
     pegman:
       test:
@@ -19,8 +20,14 @@ spring:
             client-id: surveyor-dev
             client-secret: 0QGtISJ8vmDMc3Un1WtyV30jbo0dnM8J
             authorization-grant-type: client_credentials
+          resource-lookup:
+            client-id: surveyor-mgmt
+            client-secret: q8ZXva4gKwyFBpfz4xuJTuoFLGMxhLTA
+            authorization-grant-type: client_credentials
         provider:
           management-dev:
+            issuer-uri: http://${DOCKER_HOST_IP:172.17.0.1}:8082/realms/contentgrid-dev
+          resource-lookup:
             issuer-uri: http://${DOCKER_HOST_IP:172.17.0.1}:8082/realms/contentgrid-dev
 
 

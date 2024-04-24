@@ -1,6 +1,5 @@
 package com.contentgrid.surveyor.application.surveyor.boot;
 
-import com.contentgrid.surveyor.api.metrics.AggregateBillingMetrics;
 import com.contentgrid.surveyor.api.pull.PullMetrics;
 import com.contentgrid.surveyor.api.resources.LinkResources;
 import com.contentgrid.surveyor.application.surveyor.autoconfigure.OptionalR2dbcAutoConfiguration;
