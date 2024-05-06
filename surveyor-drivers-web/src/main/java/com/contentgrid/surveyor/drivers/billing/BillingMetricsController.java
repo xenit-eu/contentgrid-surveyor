@@ -6,7 +6,6 @@ import com.contentgrid.surveyor.spi.resources.LinkedMeasurements;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Comparator;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.ResponseEntity;
@@ -58,23 +57,23 @@ public class BillingMetricsController {
     }
 
     private static class LMComparator implements Comparator<LinkedMeasurements> {
-        static Comparator<String> c = new NullFirstStringComparator();
+        static Comparator<String> comp = new NullFirstStringComparator();
         @Override
         public int compare(LinkedMeasurements a, LinkedMeasurements b) {
             // compare org
-            var orgCompare = Objects.compare(a.linkage().getOrgRef(), b.linkage().getOrgRef(), c);
+            var orgCompare = comp.compare(a.linkage().getOrgRef(), b.linkage().getOrgRef());
             if (orgCompare != 0) {
                 return orgCompare;
             }
 
             // otherwise compare project
-            var projectCompare = Objects.compare(a.linkage().getProjectRef(), b.linkage().getProjectRef(), c);
+            var projectCompare = comp.compare(a.linkage().getProjectRef(), b.linkage().getProjectRef());
             if (projectCompare != 0) {
                 return projectCompare;
             }
 
             // otherwise compare app
-            return Objects.compare(a.linkage().getApplicationRef(), b.linkage().getApplicationRef(), c);
+            return comp.compare(a.linkage().getApplicationRef(), b.linkage().getApplicationRef());
         }
     }
 
