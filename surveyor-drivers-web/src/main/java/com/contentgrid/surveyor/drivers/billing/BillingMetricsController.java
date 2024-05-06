@@ -6,6 +6,7 @@ import com.contentgrid.surveyor.spi.resources.LinkedMeasurements;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Comparator;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.ResponseEntity;
@@ -57,22 +58,37 @@ public class BillingMetricsController {
     }
 
     private static class LMComparator implements Comparator<LinkedMeasurements> {
+        static Comparator<String> c = new NullFirstStringComparator();
         @Override
         public int compare(LinkedMeasurements a, LinkedMeasurements b) {
             // compare org
-            var orgCompare = a.linkage().getOrgRef().compareTo(b.linkage().getOrgRef());
+            var orgCompare = Objects.compare(a.linkage().getOrgRef(), b.linkage().getOrgRef(), c);
             if (orgCompare != 0) {
                 return orgCompare;
             }
 
             // otherwise compare project
-            var projectCompare = a.linkage().getProjectRef().compareTo(b.linkage().getProjectRef());
+            var projectCompare = Objects.compare(a.linkage().getProjectRef(), b.linkage().getProjectRef(), c);
             if (projectCompare != 0) {
                 return projectCompare;
             }
 
             // otherwise compare app
-            return a.linkage().getApplicationRef().compareTo(b.linkage().getApplicationRef());
+            return Objects.compare(a.linkage().getApplicationRef(), b.linkage().getApplicationRef(), c);
+        }
+    }
+
+    private static class NullFirstStringComparator implements Comparator<String> {
+        @Override
+        public int compare(String a, String b) {
+            if (a == null && b == null) {
+                return 0;
+            } else if (a == null) {
+                return -1;
+            } else if (b == null) {
+                return 1;
+            }
+            return a.compareTo(b);
         }
     }
 }

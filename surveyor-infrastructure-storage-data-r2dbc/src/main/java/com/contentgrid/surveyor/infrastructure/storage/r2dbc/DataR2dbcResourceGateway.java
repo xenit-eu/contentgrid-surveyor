@@ -1,6 +1,7 @@
 package com.contentgrid.surveyor.infrastructure.storage.r2dbc;
 
 import com.contentgrid.surveyor.spi.resources.CreateMetricSpiPort;
+import com.contentgrid.surveyor.spi.resources.FindResourceLinkSpiPort;
 import com.contentgrid.surveyor.spi.resources.FindUnlinkedResourcesSpiPort;
 import com.contentgrid.surveyor.spi.resources.LinkResourceSpiPort;
 import com.contentgrid.surveyor.spi.resources.Metric;
@@ -12,7 +13,7 @@ import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
 public class DataR2dbcResourceGateway implements CreateMetricSpiPort, FindUnlinkedResourcesSpiPort,
-        LinkResourceSpiPort {
+        LinkResourceSpiPort, FindResourceLinkSpiPort {
 
     private final ResourceIdentityRepository resourceIdentityRepository;
     private final MetricRepository metricRepository;
@@ -46,5 +47,10 @@ public class DataR2dbcResourceGateway implements CreateMetricSpiPort, FindUnlink
                 .findOrCreate(metric.getResourceIdentity())
                 .flatMap(resourceIdentity -> metricRepository.upsert(MetricEntity.from(resourceIdentity.getId(), metric)))
                 .then();
+    }
+
+    @Override
+    public Mono<ResourceLinkage> lookupLinkageForResource(ResourceIdentity identity) {
+        return resourceIdentityRepository.find(identity).map(ResourceIdentityEntity::toResourceLinkage);
     }
 }
