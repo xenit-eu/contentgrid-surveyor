@@ -57,22 +57,37 @@ public class BillingMetricsController {
     }
 
     private static class LMComparator implements Comparator<LinkedMeasurements> {
+        static Comparator<String> comp = new NullFirstStringComparator();
         @Override
         public int compare(LinkedMeasurements a, LinkedMeasurements b) {
             // compare org
-            var orgCompare = a.linkage().getOrgRef().compareTo(b.linkage().getOrgRef());
+            var orgCompare = comp.compare(a.linkage().getOrgRef(), b.linkage().getOrgRef());
             if (orgCompare != 0) {
                 return orgCompare;
             }
 
             // otherwise compare project
-            var projectCompare = a.linkage().getProjectRef().compareTo(b.linkage().getProjectRef());
+            var projectCompare = comp.compare(a.linkage().getProjectRef(), b.linkage().getProjectRef());
             if (projectCompare != 0) {
                 return projectCompare;
             }
 
             // otherwise compare app
-            return a.linkage().getApplicationRef().compareTo(b.linkage().getApplicationRef());
+            return comp.compare(a.linkage().getApplicationRef(), b.linkage().getApplicationRef());
+        }
+    }
+
+    private static class NullFirstStringComparator implements Comparator<String> {
+        @Override
+        public int compare(String a, String b) {
+            if (a == null && b == null) {
+                return 0;
+            } else if (a == null) {
+                return -1;
+            } else if (b == null) {
+                return 1;
+            }
+            return a.compareTo(b);
         }
     }
 }

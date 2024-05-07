@@ -1,6 +1,7 @@
 package com.contentgrid.surveyor.infrastructure.storage.memory;
 
 import com.contentgrid.surveyor.spi.resources.CreateMetricSpiPort;
+import com.contentgrid.surveyor.spi.resources.FindResourceLinkSpiPort;
 import com.contentgrid.surveyor.spi.resources.FindUnlinkedResourcesSpiPort;
 import com.contentgrid.surveyor.spi.resources.LinkResourceSpiPort;
 import com.contentgrid.surveyor.spi.resources.Metric;
@@ -15,7 +16,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class InMemoryResourceGateway implements LinkResourceSpiPort, FindUnlinkedResourcesSpiPort,
-        CreateMetricSpiPort {
+        CreateMetricSpiPort, FindResourceLinkSpiPort {
     private static final ResourceLinkage SENTINEL = new ResourceLinkage(null, null, null);
     private final Map<ResourceIdentity, ResourceLinkage> memory = new ConcurrentHashMap<>();
 
@@ -54,5 +55,10 @@ public class InMemoryResourceGateway implements LinkResourceSpiPort, FindUnlinke
             }
             return Mono.empty();
         });
+    }
+
+    @Override
+    public Mono<ResourceLinkage> lookupLinkageForResource(ResourceIdentity identity) {
+        return Mono.justOrEmpty(memory.get(identity));
     }
 }

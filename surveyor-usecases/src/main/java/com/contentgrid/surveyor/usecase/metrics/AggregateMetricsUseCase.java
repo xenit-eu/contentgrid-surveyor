@@ -9,6 +9,7 @@ import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.config.FindMeasurementAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
+import com.contentgrid.surveyor.spi.resources.FindResourceLinkSpiPort;
 import com.contentgrid.surveyor.spi.resources.LinkedMeasurements;
 import com.contentgrid.surveyor.spi.resources.LookupResourceLinkSpiPort;
 import com.contentgrid.surveyor.spi.resources.ResourceLinkage;
@@ -37,7 +38,7 @@ public class AggregateMetricsUseCase implements AggregateBillingMetrics {
     private final FindMeasurementAggregationConfigurationSpiPort findMeasurementAggregationConfigurationSpiPort;
     private final AggregateMeasurementsSpiPort aggregateMeasurementsSpiPort;
     private final FindResourceDefinitionsSpiPort findResourceDefinitionsSpiPort;
-    private final LookupResourceLinkSpiPort lookupResourceLinkSpiPort;
+    private final FindResourceLinkSpiPort findResourceLinkSpiPort;
 
     record LinkedMeasurement(Measurement measurement, ResourceLinkage linkage){}
 
@@ -72,7 +73,7 @@ public class AggregateMetricsUseCase implements AggregateBillingMetrics {
     }
 
     private Mono<ResourceLinkage> getLink(Measurement measurement) {
-        return lookupResourceLinkSpiPort.lookupLinkageForResource(measurement.getMetric().getResourceIdentity());
+        return findResourceLinkSpiPort.lookupLinkageForResource(measurement.getMetric().getResourceIdentity());
     }
 
     private static Map<MetricName, Measurement> measurementsToMap(List<Measurement> measurements) {

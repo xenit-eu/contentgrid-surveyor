@@ -13,6 +13,7 @@ import com.contentgrid.surveyor.spi.collector.MeasurementCollector;
 import com.contentgrid.surveyor.spi.config.FindCollectionConfigurationsSpiPort;
 import com.contentgrid.surveyor.spi.config.FindMeasurementAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
+import com.contentgrid.surveyor.spi.resources.FindResourceLinkSpiPort;
 import com.contentgrid.surveyor.spi.resources.FindUnlinkedResourcesSpiPort;
 import com.contentgrid.surveyor.spi.resources.LinkResourceSpiPort;
 import com.contentgrid.surveyor.spi.resources.LookupResourceLinkSpiPort;
@@ -91,10 +92,10 @@ public class ContentgridSurveyorApplication {
             FindMeasurementAggregationConfigurationSpiPort findMeasurementAggregationConfiguration,
             AggregateMeasurementsSpiPort aggregateMeasurementsSpiPort,
             FindResourceDefinitionsSpiPort findResourceDefinitionsSpiPort,
-            LookupResourceLinkSpiPort lookupResourceLinkSpiPort
+            FindResourceLinkSpiPort findResourceLinkSpiPort
     ) {
         return new AggregateMetricsUseCase(findMeasurementAggregationConfiguration, aggregateMeasurementsSpiPort,
-                findResourceDefinitionsSpiPort, lookupResourceLinkSpiPort);
+                findResourceDefinitionsSpiPort, findResourceLinkSpiPort);
     }
 
     @Bean
