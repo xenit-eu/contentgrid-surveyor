@@ -92,10 +92,10 @@ public class ContentgridSurveyorExporterPostgresApplication {
     }
 
     @Bean
-    MetricsController metricsController(List<MultiCollector> collectors, Executor executor) {
+    MetricsController metricsController(SqlQueryCollector sqlQueryCollector, Executor executor) {
         // Don't make a bean out of this registry, or you get a dependency loop
         var registry = new PrometheusRegistry();
-        collectors.forEach(registry::register);
+        registry.register(sqlQueryCollector);
 
         return new MetricsController(new PrometheusScrapeHandler(registry), executor);
     }
