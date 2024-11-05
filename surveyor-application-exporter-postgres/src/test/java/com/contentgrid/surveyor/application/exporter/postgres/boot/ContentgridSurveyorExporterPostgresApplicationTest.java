@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -32,6 +33,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.k3s.K3sContainer;
 import org.testcontainers.utility.DockerImageName;
 
+@AutoConfigureObservability
 @SpringBootTest
 @Testcontainers
 class ContentgridSurveyorExporterPostgresApplicationTest {
