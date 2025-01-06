@@ -64,7 +64,7 @@ public class MetricsCollector implements MessageReceiver, Collector {
 
     private static String antiNull(String value, String desc) {
         if (value == null) {
-            log.warn("Replacing null with \"(null)\" for property {}", desc);
+            log.debug("Replacing null with \"(null)\" for property {}", desc);
             return "(null)";
         }
         return value;
