@@ -10,16 +10,16 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.micrometer.observation.ObservationRegistry;
 import io.prometheus.metrics.exporter.common.PrometheusScrapeHandler;
-import io.prometheus.metrics.model.registry.MultiCollector;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.Executor;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -38,10 +38,11 @@ public class ContentgridSurveyorExporterPostgresApplication {
 
     @Bean
     KubernetesClient kubernetesClient(SurveyorExporterProperties properties) {
-        var config = Optional.ofNullable(properties.getKubernetes()).orElseGet(() -> {
+        var config = properties.getKubernetes();
+        if (!properties.isKubernetesConfigured()) {
             log.warn("Using autoconfiguration for kubernetes client");
-            return Config.autoConfigure(null);
-        });
+            config = Config.autoConfigure(null);
+        }
         return new KubernetesClientBuilder().withConfig(config).build();
     }
 
@@ -49,12 +50,22 @@ public class ContentgridSurveyorExporterPostgresApplication {
     @Data
     @AllArgsConstructor
     static class SurveyorExporterProperties {
-        private Config kubernetes;
+
+        private Config kubernetes = Config.empty();
+
+        @Setter(value = AccessLevel.NONE)
+        private boolean kubernetesConfigured = false;
+
         @NonNull
         private Discovery discovery;
 
         @NonNull
         private List<QueryMetricProperties> metrics;
+
+        public void setKubernetes(Config kubernetes) {
+            this.kubernetes = kubernetes;
+            this.kubernetesConfigured = true;
+        }
 
         @Data
         @AllArgsConstructor

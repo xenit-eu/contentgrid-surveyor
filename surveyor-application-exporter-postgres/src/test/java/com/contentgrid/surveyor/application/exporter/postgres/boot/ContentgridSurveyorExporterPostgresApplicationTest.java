@@ -38,7 +38,7 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 class ContentgridSurveyorExporterPostgresApplicationTest {
     @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer(DockerImageName.parse("postgres:latest"));
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:latest"));
     @Container
     static K3sContainer kubernetes = new K3sContainer(DockerImageName.parse("rancher/k3s:latest"));
 
