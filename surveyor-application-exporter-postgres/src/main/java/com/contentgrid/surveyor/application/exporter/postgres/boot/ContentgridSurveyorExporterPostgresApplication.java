@@ -32,6 +32,16 @@ public class ContentgridSurveyorExporterPostgresApplication {
             log.warn("Using autoconfiguration for kubernetes client");
             config = Config.autoConfigure(null);
         }
+        // If you pass namespace via surveyor.exporter.kubernetes.namespace, the configuration of the
+        // kubernetes client will not be autoconfigured based on the kubeconfig file. You need to pass
+        // everything to surveyor.exporter.kubernetes instead.
+        // If you pass namespace via surveyor.exporter.user-apps-namespace, the configuration of the
+        // kubernetes client will be autoconfigured first (assuming you did not provide any properties
+        // under surveyor.exporter.kubernetes), and then the namespace of the configuration gets
+        // overridden with the value of surveyor.exporter.user-apps-namespace.
+        if (properties.getUserAppsNamespace() != null) {
+            config.setNamespace(properties.getUserAppsNamespace());
+        }
         return new KubernetesClientBuilder().withConfig(config).build();
     }
 

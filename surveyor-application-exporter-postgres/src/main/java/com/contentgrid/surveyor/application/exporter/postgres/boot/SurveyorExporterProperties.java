@@ -25,6 +25,8 @@ public class SurveyorExporterProperties {
 
     private List<QueryMetricProperties> metrics = new ArrayList<>();
 
+    private String userAppsNamespace;
+
     public void setKubernetes(Config kubernetes) {
         this.kubernetes = kubernetes;
         this.kubernetesConfigured = true;
