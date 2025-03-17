@@ -28,10 +28,6 @@ public class ContentgridSurveyorExporterPostgresApplication {
     @Bean
     KubernetesClient kubernetesClient(SurveyorExporterProperties properties) {
         var config = properties.getKubernetes();
-        if (!properties.isKubernetesConfigured()) {
-            log.warn("Using autoconfiguration for kubernetes client");
-            config = Config.autoConfigure(null);
-        }
         return new KubernetesClientBuilder().withConfig(config).build();
     }
 

@@ -16,19 +16,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 public class SurveyorExporterProperties {
 
-    private Config kubernetes = Config.empty();
-
-    @Setter(value = AccessLevel.NONE)
-    private boolean kubernetesConfigured = false;
+    private Config kubernetes = Config.autoConfigure(null);
 
     private Discovery discovery = new Discovery();
 
     private List<QueryMetricProperties> metrics = new ArrayList<>();
-
-    public void setKubernetes(Config kubernetes) {
-        this.kubernetes = kubernetes;
-        this.kubernetesConfigured = true;
-    }
 
     @Data
     public static class Discovery {
