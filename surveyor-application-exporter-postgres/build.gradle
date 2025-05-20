@@ -10,7 +10,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 	implementation 'org.springframework:spring-jdbc'
-	implementation 'io.fabric8:kubernetes-client:7.3.0'
+	implementation 'io.fabric8:kubernetes-client:7.3.1'
 	implementation 'io.prometheus:prometheus-metrics-core'
 	implementation 'io.prometheus:prometheus-metrics-exporter-common'
 
