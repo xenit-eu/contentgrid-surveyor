@@ -27,19 +27,6 @@ allprojects {
     }
 
     pluginManager.withPlugin('org.springframework.boot') {
-        bootBuildImage {
-            imageName = "docker.contentgrid.com/surveyor:${project.version}"
-            tags = "${project.version}".endsWith('SNAPSHOT') ? ['docker.contentgrid.com/surveyor:SNAPSHOT'] : null
-
-            docker {
-                publishRegistry {
-                    url = project.findProperty('DOCKER_PUBLISH_REGISTRY_URL')
-                    username = project.findProperty('DOCKER_PUBLISH_REGISTRY_USERNAME')
-                    password = project.findProperty('DOCKER_PUBLISH_REGISTRY_PASSWORD')
-                }
-            }
-        }
-
         bootRun {
             args = ["--spring.profiles.active=bootRun"]
         }
