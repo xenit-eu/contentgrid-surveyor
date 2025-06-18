@@ -11,7 +11,7 @@ dependencies {
 
     constraints {
         api 'com.jayway.restassured:rest-assured:2.9.0'
-        api 'com.contentgrid.hateoas:contentgrid-hateoas-spring:0.0.1'
+        api 'com.contentgrid.hateoas:contentgrid-hateoas-spring:0.0.2'
         api 'io.prometheus:prometheus-metrics-core:1.3.8'
         api 'io.prometheus:prometheus-metrics-exporter-common:1.3.8'
         api 'io.prometheus:prometheus-metrics-exporter-servlet-jakarta:1.3.8'
