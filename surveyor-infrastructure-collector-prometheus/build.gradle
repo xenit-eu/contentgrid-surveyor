@@ -21,7 +21,7 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     testFixturesImplementation platform(project(':surveyor-dependencies'))
-    testFixturesApi 'org.testcontainers:testcontainers'
+    testFixturesApi 'org.springframework.boot:spring-boot-testcontainers'
     testFixturesImplementation 'org.awaitility:awaitility'
     testFixturesImplementation 'org.springframework:spring-webflux'
 }
