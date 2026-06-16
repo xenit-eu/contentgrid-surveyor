@@ -20,6 +20,13 @@ dependencies {
 	implementation project(':surveyor-infrastructure-config-spring')
 	implementation project(':surveyor-infrastructure-resource-linkage-captain')
 
+	implementation("com.contentgrid.common:contentgrid-common-spring-boot-starter:${contentgridCommonVersion}") {
+		capabilities {
+			requireFeature("${contentgridCommonSpringCapability}")
+		}
+	}
+	implementation("com.contentgrid.common:contentgrid-common-spring-actuators:${contentgridCommonVersion}")
+
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
 	testRuntimeOnly 'org.testcontainers:r2dbc'

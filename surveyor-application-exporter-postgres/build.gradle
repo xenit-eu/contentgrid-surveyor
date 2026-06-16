@@ -14,6 +14,13 @@ dependencies {
 	implementation 'io.prometheus:prometheus-metrics-core'
 	implementation 'io.prometheus:prometheus-metrics-exporter-common'
 
+	implementation("com.contentgrid.common:contentgrid-common-spring-boot-starter:${contentgridCommonVersion}") {
+		capabilities {
+			requireFeature("${contentgridCommonSpringCapability}")
+		}
+	}
+	implementation("com.contentgrid.common:contentgrid-common-spring-actuators:${contentgridCommonVersion}")
+
 	runtimeOnly "io.micrometer:micrometer-registry-prometheus"
 	runtimeOnly 'org.postgresql:postgresql'
 

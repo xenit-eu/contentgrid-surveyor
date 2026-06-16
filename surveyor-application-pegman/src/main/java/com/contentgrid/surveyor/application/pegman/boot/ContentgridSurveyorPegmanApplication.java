@@ -2,6 +2,7 @@ package com.contentgrid.surveyor.application.pegman.boot;
 
 import static org.springframework.security.authorization.AuthorityReactiveAuthorizationManager.hasAuthority;
 
+import com.contentgrid.common.spring.actuators.ExposedActuatorEndpoint;
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
 import com.contentgrid.surveyor.infrastructure.collector.prometheus.SurveyorMeasurementCollectorPrometheusConfiguration;
 import com.contentgrid.surveyor.infrastructure.config.spring.SurveyorSpringConfiguration;
@@ -63,28 +64,15 @@ public class ContentgridSurveyorPegmanApplication {
     }
 
     @Bean
+    ExposedActuatorEndpoint exposedMetricsEndpoint() {
+        return new ExposedActuatorEndpoint(MetricsEndpoint.class);
+    }
+
+    @Bean
     SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http,
             ReactiveJwtAuthenticationConverter reactiveJwtAuthenticationConverter) {
         http
                 .authorizeExchange(exchanges -> exchanges
-                        // requests to the actuators /info, /health, /metrics, and /prometheus are allowed unauthenticated
-                        .matchers(EndpointRequest.to(
-                                InfoEndpoint.class,
-                                HealthEndpoint.class,
-                                MetricsEndpoint.class,
-                                PrometheusScrapeEndpoint.class
-                        )).permitAll()
-                        // requests FROM localhost to actuator endpoints are all permitted
-                        .matchers(new AndServerWebExchangeMatcher(
-                                EndpointRequest.toAnyEndpoint(),
-                                mgmtExchange -> {
-                                    var remoteAddress = mgmtExchange.getRequest().getRemoteAddress();
-                                    if (remoteAddress != null && remoteAddress.getAddress().isLoopbackAddress()) {
-                                        return ServerWebExchangeMatcher.MatchResult.match();
-                                    }
-                                    return ServerWebExchangeMatcher.MatchResult.notMatch();
-                                })
-                        ).permitAll()
                         // All other GET requests must have entitlement surveyor:pegman:read
                         .pathMatchers(HttpMethod.GET).access(hasAuthority("ENTITLEMENT_surveyor:pegman:read"))
                         .anyExchange().denyAll()
