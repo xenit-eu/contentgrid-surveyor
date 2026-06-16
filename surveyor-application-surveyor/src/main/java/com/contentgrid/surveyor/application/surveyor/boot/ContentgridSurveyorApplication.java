@@ -1,7 +1,9 @@
 package com.contentgrid.surveyor.application.surveyor.boot;
 
+import com.contentgrid.common.spring.actuators.ExposedActuatorEndpoint;
 import com.contentgrid.surveyor.api.pull.PullMetrics;
 import com.contentgrid.surveyor.api.resources.LinkResources;
+import com.contentgrid.surveyor.application.surveyor.actuator.SurveyorHealthActuator;
 import com.contentgrid.surveyor.application.surveyor.autoconfigure.OptionalR2dbcAutoConfiguration;
 import com.contentgrid.surveyor.drivers.billing.SurveyorBillingConfiguration;
 import com.contentgrid.surveyor.drivers.schedule.SurveyorSchedulerConfiguration;
@@ -107,6 +109,16 @@ public class ContentgridSurveyorApplication {
                 clientRegistrationRepository,
                 authorizedClientService
         );
+    }
+
+    @Bean
+    SurveyorHealthActuator surveyorHealthActuator(PullMetrics pullMetrics) {
+        return new SurveyorHealthActuator(pullMetrics);
+    }
+
+    @Bean
+    ExposedActuatorEndpoint exposedSurveyorHealthActuator() {
+        return new ExposedActuatorEndpoint(SurveyorHealthActuator.class);
     }
 
     @Bean
