@@ -16,7 +16,7 @@ management:
     health:
       group:
         readiness:
-          include: readinessState,surveyor
+          include: readinessstate,surveyor
       probes:
         enabled: true
 surveyor:
