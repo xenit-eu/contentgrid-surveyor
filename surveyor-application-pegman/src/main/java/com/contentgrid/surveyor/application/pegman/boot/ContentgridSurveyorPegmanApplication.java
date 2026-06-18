@@ -2,7 +2,6 @@ package com.contentgrid.surveyor.application.pegman.boot;
 
 import static org.springframework.security.authorization.AuthorityReactiveAuthorizationManager.hasAuthority;
 
-import com.contentgrid.common.spring.actuators.ExposedActuatorEndpoint;
 import com.contentgrid.surveyor.drivers.web.SurveyorWebConfiguration;
 import com.contentgrid.surveyor.infrastructure.collector.prometheus.SurveyorMeasurementCollectorPrometheusConfiguration;
 import com.contentgrid.surveyor.infrastructure.config.spring.SurveyorSpringConfiguration;
@@ -12,11 +11,6 @@ import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
 import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
 import com.contentgrid.surveyor.usecase.metrics.FindMetricsUseCase;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.actuate.autoconfigure.security.reactive.EndpointRequest;
-import org.springframework.boot.actuate.health.HealthEndpoint;
-import org.springframework.boot.actuate.info.InfoEndpoint;
-import org.springframework.boot.actuate.metrics.MetricsEndpoint;
-import org.springframework.boot.actuate.metrics.export.prometheus.PrometheusScrapeEndpoint;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -26,8 +20,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtGrantedAuthoritiesConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.security.web.server.util.matcher.AndServerWebExchangeMatcher;
-import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher;
 
 @SpringBootApplication
 @Import({
@@ -64,16 +56,11 @@ public class ContentgridSurveyorPegmanApplication {
     }
 
     @Bean
-    ExposedActuatorEndpoint exposedMetricsEndpoint() {
-        return new ExposedActuatorEndpoint(MetricsEndpoint.class);
-    }
-
-    @Bean
     SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http,
             ReactiveJwtAuthenticationConverter reactiveJwtAuthenticationConverter) {
         http
                 .authorizeExchange(exchanges -> exchanges
-                        // All other GET requests must have entitlement surveyor:pegman:read
+                        // All GET requests must have entitlement surveyor:pegman:read
                         .pathMatchers(HttpMethod.GET).access(hasAuthority("ENTITLEMENT_surveyor:pegman:read"))
                         .anyExchange().denyAll()
                 )

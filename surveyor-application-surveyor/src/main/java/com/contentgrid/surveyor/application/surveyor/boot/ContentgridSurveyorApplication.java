@@ -1,9 +1,8 @@
 package com.contentgrid.surveyor.application.surveyor.boot;
 
-import com.contentgrid.common.spring.actuators.ExposedActuatorEndpoint;
 import com.contentgrid.surveyor.api.pull.PullMetrics;
 import com.contentgrid.surveyor.api.resources.LinkResources;
-import com.contentgrid.surveyor.application.surveyor.actuator.SurveyorHealthActuator;
+import com.contentgrid.surveyor.application.surveyor.actuator.SurveyorHealthIndicator;
 import com.contentgrid.surveyor.application.surveyor.autoconfigure.OptionalR2dbcAutoConfiguration;
 import com.contentgrid.surveyor.drivers.billing.SurveyorBillingConfiguration;
 import com.contentgrid.surveyor.drivers.schedule.SurveyorSchedulerConfiguration;
@@ -28,6 +27,7 @@ import com.contentgrid.surveyor.usecase.pull.PullMetricsUseCase;
 import com.contentgrid.surveyor.usecase.resources.LinkResourcesUseCase;
 import java.util.List;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.actuate.autoconfigure.health.ConditionalOnEnabledHealthIndicator;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
@@ -112,13 +112,9 @@ public class ContentgridSurveyorApplication {
     }
 
     @Bean
-    SurveyorHealthActuator surveyorHealthActuator(PullMetrics pullMetrics) {
-        return new SurveyorHealthActuator(pullMetrics);
-    }
-
-    @Bean
-    ExposedActuatorEndpoint exposedSurveyorHealthActuator() {
-        return new ExposedActuatorEndpoint(SurveyorHealthActuator.class);
+    @ConditionalOnEnabledHealthIndicator("surveyor")
+    SurveyorHealthIndicator surveyor(PullMetrics pullMetrics) {
+        return new SurveyorHealthIndicator(pullMetrics);
     }
 
     @Bean

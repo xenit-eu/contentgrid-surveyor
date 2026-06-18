@@ -7,7 +7,7 @@ import org.springframework.boot.actuate.health.ReactiveHealthIndicator;
 import reactor.core.publisher.Mono;
 
 @AllArgsConstructor
-public class SurveyorHealthActuator implements ReactiveHealthIndicator {
+public class SurveyorHealthIndicator implements ReactiveHealthIndicator {
 
     private PullMetrics pullMetrics;
 

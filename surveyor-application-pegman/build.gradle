@@ -21,7 +21,6 @@ dependencies {
 			requireFeature("${contentgridCommonSpringCapability}")
 		}
 	}
-	implementation("com.contentgrid.common:contentgrid-common-spring-actuators:${contentgridCommonVersion}")
 
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
