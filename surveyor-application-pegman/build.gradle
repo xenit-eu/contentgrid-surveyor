@@ -16,6 +16,12 @@ dependencies {
 	implementation project(':surveyor-infrastructure-collector-prometheus')
 	implementation project(':surveyor-infrastructure-config-spring')
 
+	implementation("com.contentgrid.common:contentgrid-common-spring-boot-starter:${contentgridCommonVersion}") {
+		capabilities {
+			requireFeature("${contentgridCommonSpringCapability}")
+		}
+	}
+
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
 	developmentOnly 'org.testcontainers:postgresql'

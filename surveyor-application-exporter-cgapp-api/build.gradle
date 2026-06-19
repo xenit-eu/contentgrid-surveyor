@@ -15,7 +15,11 @@ dependencies {
     implementation 'io.prometheus:prometheus-metrics-exporter-servlet-jakarta'
     implementation 'jakarta.servlet:jakarta.servlet-api'
 
-    implementation 'com.contentgrid.spring:contentgrid-spring-boot-autoconfigure:0.18.1'
+    implementation("com.contentgrid.common:contentgrid-common-spring-boot-starter:${contentgridCommonVersion}") {
+        capabilities {
+            requireFeature("${contentgridCommonSpringCapability}")
+        }
+    }
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }

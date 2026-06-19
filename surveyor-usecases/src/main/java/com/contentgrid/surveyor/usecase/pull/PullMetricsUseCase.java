@@ -32,6 +32,8 @@ public class PullMetricsUseCase implements PullMetrics {
     private final StoreMeasurementSpiPort storeMeasurementSpiPort;
     private final LastMeasurementSpiPort lastMeasurementSpiPort;
 
+    private boolean isLastPullSuccesfull = false;
+
     @Override
     public void pullMetrics() {
         for (MeasurementCollector measurementCollector : measurementCollectors) {
@@ -80,12 +82,20 @@ public class PullMetricsUseCase implements PullMetrics {
                                                 : Mono.empty());
                             }).then();
                         })
-                        .doOnError(error -> log.error("Failed to pull metrics for {}", resourceDefinition, error))
+                        .doOnSuccess(m -> this.isLastPullSuccesfull = true)
+                        .doOnError(error -> {
+                            log.error("Failed to pull metrics for {}", resourceDefinition, error);
+                            this.isLastPullSuccesfull = false;
+                        })
                         .onErrorComplete()
                         .block();
             }
 
         }
+    }
+
+    public boolean isLastPullSuccesfull() {
+        return this.isLastPullSuccesfull;
     }
 
 
