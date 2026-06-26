@@ -11,6 +11,11 @@ import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
 import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
 import com.contentgrid.surveyor.usecase.metrics.FindMetricsUseCase;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.actuate.autoconfigure.security.reactive.EndpointRequest;
+import org.springframework.boot.actuate.health.HealthEndpoint;
+import org.springframework.boot.actuate.info.InfoEndpoint;
+import org.springframework.boot.actuate.metrics.MetricsEndpoint;
+import org.springframework.boot.actuate.metrics.export.prometheus.PrometheusScrapeEndpoint;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -20,6 +25,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtGrantedAuthoritiesConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.util.matcher.AndServerWebExchangeMatcher;
+import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher;
 
 @SpringBootApplication
 @Import({
@@ -60,7 +67,25 @@ public class ContentgridSurveyorPegmanApplication {
             ReactiveJwtAuthenticationConverter reactiveJwtAuthenticationConverter) {
         http
                 .authorizeExchange(exchanges -> exchanges
-                        // All GET requests must have entitlement surveyor:pegman:read
+                        // requests to the actuators /info, /health, /metrics, and /prometheus are allowed unauthenticated
+                        .matchers(EndpointRequest.to(
+                                InfoEndpoint.class,
+                                HealthEndpoint.class,
+                                MetricsEndpoint.class,
+                                PrometheusScrapeEndpoint.class
+                        )).permitAll()
+                        // requests FROM localhost to actuator endpoints are all permitted
+                        .matchers(new AndServerWebExchangeMatcher(
+                                EndpointRequest.toAnyEndpoint(),
+                                mgmtExchange -> {
+                                    var remoteAddress = mgmtExchange.getRequest().getRemoteAddress();
+                                    if (remoteAddress != null && remoteAddress.getAddress().isLoopbackAddress()) {
+                                        return ServerWebExchangeMatcher.MatchResult.match();
+                                    }
+                                    return ServerWebExchangeMatcher.MatchResult.notMatch();
+                                })
+                        ).permitAll()
+                        // All other GET requests must have entitlement surveyor:pegman:read
                         .pathMatchers(HttpMethod.GET).access(hasAuthority("ENTITLEMENT_surveyor:pegman:read"))
                         .anyExchange().denyAll()
                 )

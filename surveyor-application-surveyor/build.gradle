@@ -6,8 +6,6 @@ plugins {
 }
 
 dependencies {
-
-
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	//implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
@@ -21,12 +19,6 @@ dependencies {
 	implementation project(':surveyor-infrastructure-collector-pegman')
 	implementation project(':surveyor-infrastructure-config-spring')
 	implementation project(':surveyor-infrastructure-resource-linkage-captain')
-
-	implementation("com.contentgrid.common:contentgrid-common-spring-boot-starter:${contentgridCommonVersion}") {
-		capabilities {
-			requireFeature("${contentgridCommonSpringCapability}")
-		}
-	}
 
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
