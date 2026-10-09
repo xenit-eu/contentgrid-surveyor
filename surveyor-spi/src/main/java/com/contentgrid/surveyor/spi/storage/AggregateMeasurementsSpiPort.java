@@ -4,7 +4,6 @@ import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.resources.Metric;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

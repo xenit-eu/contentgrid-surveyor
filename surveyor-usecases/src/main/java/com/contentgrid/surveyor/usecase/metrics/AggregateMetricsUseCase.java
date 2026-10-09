@@ -1,34 +1,23 @@
 package com.contentgrid.surveyor.usecase.metrics;
 
 import com.contentgrid.surveyor.api.metrics.AggregateBillingMetrics;
-import com.contentgrid.surveyor.api.metrics.ExportedMetrics;
-import com.contentgrid.surveyor.api.metrics.Metric;
-import com.contentgrid.surveyor.api.metrics.Resource;
-import com.contentgrid.surveyor.api.metrics.ResourceMetric;
 import com.contentgrid.surveyor.spi.ResourceDefinition;
 import com.contentgrid.surveyor.spi.TimeInterval;
 import com.contentgrid.surveyor.spi.config.FindMeasurementAggregationConfigurationSpiPort;
 import com.contentgrid.surveyor.spi.config.FindResourceDefinitionsSpiPort;
 import com.contentgrid.surveyor.spi.resources.FindResourceLinkSpiPort;
 import com.contentgrid.surveyor.spi.resources.LinkedMeasurements;
-import com.contentgrid.surveyor.spi.resources.LookupResourceLinkSpiPort;
 import com.contentgrid.surveyor.spi.resources.ResourceLinkage;
 import com.contentgrid.surveyor.spi.storage.AggregateMeasurementsSpiPort;
 import com.contentgrid.surveyor.spi.storage.Measurement;
 import com.contentgrid.surveyor.spi.storage.aggregation.AggregationConfiguration;
 import com.contentgrid.surveyor.values.MetricName;
 import com.contentgrid.surveyor.values.ResourceAndMetric;
-import com.contentgrid.surveyor.values.ResourceType;
-import com.contentgrid.surveyor.values.SourceName;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
