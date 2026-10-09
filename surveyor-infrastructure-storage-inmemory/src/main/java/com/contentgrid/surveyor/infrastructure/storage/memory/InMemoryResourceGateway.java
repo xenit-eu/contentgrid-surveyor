@@ -7,11 +7,9 @@ import com.contentgrid.surveyor.spi.resources.LinkResourceSpiPort;
 import com.contentgrid.surveyor.spi.resources.Metric;
 import com.contentgrid.surveyor.spi.resources.ResourceIdentity;
 import com.contentgrid.surveyor.spi.resources.ResourceLinkage;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.core.io.Resource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
