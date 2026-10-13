@@ -1,6 +1,5 @@
 package com.contentgrid.surveyor.drivers.billing;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
@@ -16,7 +15,6 @@ import com.contentgrid.surveyor.values.ResourceId;
 import com.contentgrid.surveyor.values.ResourceType;
 import com.contentgrid.surveyor.values.SourceName;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

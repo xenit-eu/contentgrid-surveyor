@@ -3,7 +3,6 @@ package com.contentgrid.surveyor.application.exporter.postgres.boot;
 import com.contentgrid.surveyor.application.exporter.postgres.connections.DatabaseConnectionManager;
 import com.contentgrid.surveyor.application.exporter.postgres.queries.SqlQueryCollector;
 import com.contentgrid.surveyor.application.exporter.postgres.queries.SqlQueryExecutor;
-import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.micrometer.observation.ObservationRegistry;

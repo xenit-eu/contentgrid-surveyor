@@ -1,6 +1,5 @@
 package com.contentgrid.surveyor.infrastructure.collector.prometheus;
 
-import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.surveyor.infrastructure.collector.prometheus.test.FakeMetrics;
 import com.contentgrid.surveyor.infrastructure.collector.prometheus.test.FakeMetrics.MetricDefinition;
